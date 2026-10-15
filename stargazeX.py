@@ -5,84 +5,29 @@ CYBERPUNK EDITION v4.1.1: UNIFIED MALAYSIA STARGAZING SELECTOR
 SKY CLARITY + SATELLITE + FORECAST + BORTLE EDITION (SECURE NASA KEY)
 
 MALAYSIA-WIDE COVERAGE:
-- 🌌 Peninsular Malaysia (500+ locations)
-- 🌌 Sabah & Sarawak / Borneo (250+ locations)
-- 🌌 60+ curated stargazing candidates nationwide
-- 🌌 34 protected dark-sky zones
+- Peninsular Malaysia (500+ locations)
+- Sabah & Sarawak / Borneo (250+ locations)
+- 60+ curated stargazing candidates nationwide
+- 34 protected dark-sky zones
 
 V4.1.1 SECURE NASA KEY (NEW):
-- 🔐 NASA FIRMS 
-- 🔐 Fallback to demo endpoint if secrets not configured
-- 🔐 Graceful degradation — app never crashes if key missing
-- ✅ All v4.1.0 features preserved 100%
+- NASA FIRMS API key read from Streamlit secrets (never in source code)
+- Fallback chain: st.secrets -> env var -> demo endpoint
+- Graceful degradation - app never crashes if key missing
 
-V4.1.0 NEW FEATURES (preserved):
-- 🎯 Bortle Scale Rating (1-9) — astro credibility for every site
-- 📅 7-Day Stargazing Forecast — multi-day planner with nightly scores
-- 🛰️ NASA FIRMS Satellite Fire Hotspot Overlay — live haze source visualization
+V4.1.0 FEATURES (preserved):
+- Bortle Scale Rating (1-9)
+- 7-Day Stargazing Forecast
+- NASA FIRMS Satellite Fire Hotspot Overlay
 
-V4.0.2 CALENDAR FIX (preserved):
-- ✅ Sky Clarity Season Calendar shows factual causes
-- ✅ Jun-Sep: "Sumatra/Kalimantan fires"
-- ✅ Oct: "Fires fading"
+V4.0.2 (preserved):
+- Sky Clarity Season Calendar with factual causes
 
-V4.0.1 SKY CLARITY EDITION (preserved):
-- ✅ "Haze Alert" replaced with friendly "Sky Clarity"
-- ✅ Severity scale: Very Low / Low / Fair / Good / Excellent
-- ✅ Friendlier colors (no alarming red/orange)
-- ✅ Health advisories softened to guidance
+V4.0.1 (preserved):
+- "Haze Alert" replaced with friendly "Sky Clarity"
 
-V4.0.0 COMBINED FEATURES (preserved):
-- ✅ Unified region selector (Peninsular / Borneo / All Malaysia)
-- ✅ Smart location search across 700+ sites
-- ✅ Cross-region comparison dashboard
-- ✅ Malaysia Quick Picks (top 12 sites nationwide)
-- ✅ Combined candidate ranking
-- ✅ Shared memory across both regions
-- ✅ stargazeX unified branding
-
-V3.2.7 FEATURES (preserved):
-- ✅ WAQI distance validation (rejects stations >100km away)
-- ✅ Station distance displayed in cross-check card
-- ✅ Graceful rejection notice when no nearby station
-- ✅ Ground-verified badge only shown for validated stations
-- ✅ Full audit trail in CSV/JSON exports
-
-V3.2.6 FEATURES (preserved):
-- ✅ WAQI integration: Cross-check Open-Meteo CAMS against DOE ground stations
-- ✅ "Take higher" rule: uses more conservative PM2.5 for safety
-- ✅ Air Quality Cross-Check card
-- ✅ Ground-verified badge on haze card
-
-V3.2.5 FIXES (preserved):
-- ✅ Gunung Nuang elevation corrected (1,493m peak)
-- ✅ Protected zone radius tuned (Gunung Nuang: 6km)
-- ✅ Auto peak elevation detection for "Gunung" names
-- ✅ Protected zone inside/near distinction
-
-V3.2.3 FIXES (preserved):
-- 🌴 Tropical Highland Fog Detection (Cameron, Genting, Fraser's Hill)
-
-V3.2.2 FEATURES (preserved):
-- 🌫️ High-Altitude Fog Detection
-- ✅ Clean-air health advisory for natural fog
-
-V3.2.1 FIXES (preserved):
-- ✅ Coastal cloud risk classifier
-
-V3.2 FEATURES (preserved):
-- 🌫️ Sky Clarity Detection + Air Quality Index (AQI)
-- 💨 PM2.5, PM10, aerosol data
-- 📅 Seasonal sky clarity calendar for Malaysia
-
-V3.1 FIXES (preserved):
-- ✅ Population-weighted light pollution
-
-V3.0 FEATURES (preserved):
-- 🌙 Moon Phase Integration
-- 🌌 Milky Way Visibility Calendar
-- 📸 Astrophotography Score
-- 📊 Export Reports
+V4.0.0 (preserved):
+- Unified region selector, comparison, quick picks, memory
 """
 
 import streamlit as st
@@ -106,12 +51,7 @@ import pickle
 import math
 
 # ============================================================================
-# NEW v4.1.0 IMPORTS (Satellite Overlay + 7-Day Forecast + Bortle Scale)
-# ============================================================================
-from datetime import date as _date
-
-# ============================================================================
-# CYBERPUNK STYLING (stargazeX branding)
+# CYBERPUNK STYLING
 # ============================================================================
 
 CYBERPUNK_CSS = """
@@ -150,18 +90,6 @@ CYBERPUNK_CSS = """
         padding-bottom: 10px;
         margin-bottom: 20px;
     }
-    .css-1d391kg, .css-1633s9g {
-        background: rgba(10, 10, 20, 0.95) !important;
-        border-right: 1px solid rgba(0, 240, 255, 0.2) !important;
-        backdrop-filter: blur(10px);
-    }
-    .css-1d391kg p, .css-1633s9g p,
-    .css-1d391kg label, .css-1633s9g label,
-    .css-1d391kg div, .css-1633s9g div,
-    .css-1d391kg span, .css-1633s9g span {
-        color: #ffffff !important;
-        font-weight: 400 !important;
-    }
     .recommendation-container {
         background: rgba(15, 15, 35, 0.85);
         border: 1px solid rgba(0, 240, 255, 0.2);
@@ -184,7 +112,6 @@ CYBERPUNK_CSS = """
         font-weight: bold;
         letter-spacing: 2px;
         margin-bottom: 10px;
-        text-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
     }
     .recommendation-item {
         color: #ffffff;
@@ -195,7 +122,6 @@ CYBERPUNK_CSS = """
         line-height: 1.6;
     }
     .recommendation-item:last-child { border-bottom: none; }
-    .recommendation-item .icon { margin-right: 8px; }
     .stButton > button {
         background: linear-gradient(135deg, rgba(0, 240, 255, 0.15), rgba(176, 38, 255, 0.15)) !important;
         border: 1px solid rgba(0, 240, 255, 0.4) !important;
@@ -206,7 +132,6 @@ CYBERPUNK_CSS = """
         letter-spacing: 2px !important;
         transition: all 0.3s ease !important;
         backdrop-filter: blur(5px);
-        text-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
     }
     .stButton > button:hover {
         background: linear-gradient(135deg, rgba(0, 240, 255, 0.3), rgba(176, 38, 255, 0.3)) !important;
@@ -218,7 +143,6 @@ CYBERPUNK_CSS = """
     .stButton > button[kind="primary"] {
         background: linear-gradient(135deg, rgba(0, 240, 255, 0.25), rgba(176, 38, 255, 0.25)) !important;
         border: 1px solid #00f0ff !important;
-        box-shadow: 0 0 30px rgba(0, 240, 255, 0.2) !important;
         color: #ffffff !important;
     }
     [data-testid="metric-container"] {
@@ -243,19 +167,16 @@ CYBERPUNK_CSS = """
         background: rgba(15, 15, 35, 0.8) !important;
         border: 1px solid rgba(0, 240, 255, 0.15) !important;
         border-radius: 10px !important;
-        font-family: 'Courier New', monospace !important;
     }
     .dataframe th {
         color: #00f0ff !important;
         background: rgba(0, 240, 255, 0.1) !important;
         font-family: 'Courier New', monospace !important;
         font-weight: bold !important;
-        font-size: 0.9rem !important;
     }
     .dataframe td {
         color: #ffffff !important;
         font-family: 'Courier New', monospace !important;
-        font-size: 0.85rem !important;
     }
     .streamlit-expanderHeader {
         background: rgba(15, 15, 35, 0.8) !important;
@@ -274,18 +195,6 @@ CYBERPUNK_CSS = """
     .streamlit-expanderContent li, .streamlit-expanderContent span {
         color: #ffffff !important;
     }
-    .stSelectbox [data-baseweb="select"] {
-        background: rgba(15, 15, 35, 0.8) !important;
-        border: 1px solid rgba(0, 240, 255, 0.2) !important;
-        color: #00f0ff !important;
-    }
-    .stTextInput input, .stTextArea textarea {
-        background: rgba(15, 15, 35, 0.8) !important;
-        border: 1px solid rgba(0, 240, 255, 0.2) !important;
-        border-radius: 8px !important;
-        color: #ffffff !important;
-        font-family: 'Courier New', monospace !important;
-    }
     .stAlert {
         background: rgba(15, 15, 35, 0.9) !important;
         border: 1px solid rgba(0, 240, 255, 0.2) !important;
@@ -294,33 +203,6 @@ CYBERPUNK_CSS = """
     .stAlert p, .stAlert div, .stAlert li, .stAlert span { color: #ffffff !important; }
     .stProgress > div > div {
         background: linear-gradient(90deg, #00f0ff, #b026ff, #ff2d95) !important;
-    }
-    .stTabs [data-baseweb="tab-list"] {
-        background: rgba(15, 15, 35, 0.8) !important;
-        border: 1px solid rgba(0, 240, 255, 0.15) !important;
-        border-radius: 8px !important;
-    }
-    .stTabs [data-baseweb="tab"] {
-        color: #a0a0c0 !important;
-        font-family: 'Courier New', monospace !important;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-    }
-    .stTabs [data-baseweb="tab"][aria-selected="true"] {
-        color: #00f0ff !important;
-        border-bottom: 2px solid #00f0ff !important;
-        font-weight: bold !important;
-    }
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: rgba(10, 10, 20, 0.5); }
-    ::-webkit-scrollbar-thumb {
-        background: linear-gradient(180deg, #00f0ff, #b026ff);
-        border-radius: 3px;
-    }
-    .folium-map {
-        border: 1px solid rgba(0, 240, 255, 0.2);
-        border-radius: 12px;
-        box-shadow: 0 0 40px rgba(0, 240, 255, 0.05);
     }
     .cyber-divider {
         height: 1px;
@@ -347,7 +229,6 @@ CYBERPUNK_CSS = """
         font-family: 'Courier New', monospace !important;
         font-size: 0.9rem !important;
     }
-    .stRadio [role="radiogroup"] { gap: 8px; }
     @keyframes clarityPulse {
         0%, 100% { box-shadow: 0 0 20px rgba(255, 100, 0, 0.3); }
         50% { box-shadow: 0 0 40px rgba(255, 100, 0, 0.6); }
@@ -362,7 +243,7 @@ CYBERPUNK_CSS = """
 """
 
 # ============================================================================
-# PROTECTED DARK-SKY ZONES — COMBINED (West Malaysia + Borneo)
+# PROTECTED DARK-SKY ZONES
 # ============================================================================
 
 PROTECTED_DARK_SKY_ZONES = {
@@ -437,7 +318,7 @@ PROTECTED_DARK_SKY_ZONES = {
 }
 
 # ============================================================================
-# MANUAL ELEVATION OVERRIDES (Combined)
+# ELEVATION OVERRIDES
 # ============================================================================
 
 CANDIDATE_ELEVATIONS = {
@@ -493,13 +374,7 @@ CANDIDATE_ELEVATIONS = {
     'Pulau Besar, Melaka': 30,
     'Gunung Nuang': 1493,
     'Gunung Nuang (Forest Reserve)': 1493,
-    'Ampang': 30,
-    'Hulu Langat': 200,
-    'Batang Kali': 200,
-    'Bukit Kutu': 1053,
-    'Selayang': 100,
-    'Gombak': 150,
-    'Rawang': 50,
+    'Ampang': 30, 'Selayang': 100, 'Gombak': 150, 'Rawang': 50,
     'Mount Kinabalu Summit, Sabah': 4095,
     'Kundasang Highlands, Sabah': 1500,
     'Mesilau, Sabah': 2000,
@@ -551,95 +426,68 @@ CANDIDATE_ELEVATIONS = {
 }
 
 PEAK_ELEVATIONS = {
-    'gunung nuang': 1493,
-    'gunung ledang': 1276,
-    'gunung bintang': 1862,
-    'gunung jerai': 1217,
-    'gunung tahan': 2187,
-    'gunung kinabalu': 4095,
-    'gunung brinchang': 2032,
-    'gunung irau': 2110,
-    'gunung pulai': 654,
-    'gunung panti': 531,
-    'gunung kutu': 1053,
-    'gunung besi': 833,
-    'gunung mulu': 2376,
-    'gunung trus madi': 2642,
-    'bukit kutu': 1053,
-    'bukit larut': 1000,
-    'bukit bendera': 833,
-    'penang hill': 833,
+    'gunung nuang': 1493, 'gunung ledang': 1276, 'gunung bintang': 1862,
+    'gunung jerai': 1217, 'gunung tahan': 2187, 'gunung kinabalu': 4095,
+    'gunung brinchang': 2032, 'gunung irau': 2110, 'gunung pulai': 654,
+    'gunung panti': 531, 'gunung kutu': 1053, 'gunung besi': 833,
+    'gunung mulu': 2376, 'gunung trus madi': 2642, 'bukit kutu': 1053,
+    'bukit larut': 1000, 'bukit bendera': 833, 'penang hill': 833,
 }
 
 # ============================================================================
-# SEASONAL GUIDANCE (Combined — Peninsular + Borneo)
+# SEASONAL GUIDANCE
 # ============================================================================
 
 SEASONAL_GUIDANCE = {
     'Northwest Coast (Penang, Kedah, Perlis)': {
-        'best_months': 'December - March',
-        'good_months': 'April, November',
+        'best_months': 'December - March', 'good_months': 'April, November',
         'avoid_months': 'September - October (SW monsoon)',
-        'notes': 'Dry season during NE monsoon. Clearer skies in early morning.'
-    },
+        'notes': 'Dry season during NE monsoon. Clearer skies in early morning.'},
     'East Coast (Kelantan, Terengganu, Pahang)': {
-        'best_months': 'February - May',
-        'good_months': 'January, June',
+        'best_months': 'February - May', 'good_months': 'January, June',
         'avoid_months': 'November - January (NE monsoon)',
-        'notes': 'Heavy rain during NE monsoon. Best during dry months Mar-May.'
-    },
+        'notes': 'Heavy rain during NE monsoon. Best during dry months Mar-May.'},
     'Central Highlands (Cameron, Genting, Fraser\'s Hill)': {
         'best_months': 'January - March, June - August',
         'good_months': 'April, May, September',
         'avoid_months': 'October - December (monsoon)',
-        'notes': 'Cooler highland climate. Morning clearest before afternoon clouds.'
-    },
+        'notes': 'Cooler highland climate. Morning clearest before afternoon clouds.'},
     'West Coast (KL, Selangor, Melaka, Johor)': {
         'best_months': 'January - March, June - August',
         'good_months': 'April, May, September',
         'avoid_months': 'October - December (SW monsoon transition)',
-        'notes': 'Two dry seasons. Best viewing during inter-monsoon periods.'
-    },
+        'notes': 'Two dry seasons. Best viewing during inter-monsoon periods.'},
     'Southern Johor (Johor Bahru, Endau-Rompin)': {
         'best_months': 'February - April, July - September',
         'good_months': 'January, May, June',
         'avoid_months': 'November - December (NE monsoon)',
-        'notes': 'Equatorial climate. Best during drier months.'
-    },
+        'notes': 'Equatorial climate. Best during drier months.'},
     'Sabah Highlands (Kinabalu, Kundasang, Crocker Range)': {
-        'best_months': 'February - April',
-        'good_months': 'January, May',
+        'best_months': 'February - April', 'good_months': 'January, May',
         'avoid_months': 'October - December (monsoon)',
-        'notes': 'Dry season brings clear skies. Morning is clearest before afternoon clouds build up.'
-    },
+        'notes': 'Dry season brings clear skies. Morning is clearest before afternoon clouds build up.'},
     'Sabah East Coast (Sandakan, Lahad Datu, Semporna)': {
-        'best_months': 'March - May',
-        'good_months': 'February, June',
+        'best_months': 'March - May', 'good_months': 'February, June',
         'avoid_months': 'November - January (NE monsoon)',
-        'notes': 'Drier than west coast during Mar-May. Some clear nights year-round on islands.'
-    },
+        'notes': 'Drier than west coast during Mar-May. Some clear nights year-round on islands.'},
     'Sarawak Highlands (Bario, Ba Kelalan, Mulu)': {
         'best_months': 'February - April, July - August',
         'good_months': 'January, May, June',
         'avoid_months': 'November - January (monsoon)',
-        'notes': 'Interior highlands are surprisingly clear. Bring rain gear regardless.'
-    },
+        'notes': 'Interior highlands are surprisingly clear. Bring rain gear regardless.'},
     'Sarawak Coast (Kuching, Miri, Bintulu, Sibu)': {
-        'best_months': 'March - September',
-        'good_months': 'February, October',
+        'best_months': 'March - September', 'good_months': 'February, October',
         'avoid_months': 'December - February (NE monsoon)',
-        'notes': 'Coastal areas have more cloud. Best to go inland for clear skies.'
-    },
+        'notes': 'Coastal areas have more cloud. Best to go inland for clear skies.'},
     'Interior Borneo (Kapit, Belaga, Maliau)': {
         'best_months': 'February - April, July - August',
         'good_months': 'January, May, June',
         'avoid_months': 'November - December',
-        'notes': 'Rainforest interior. Best clarity during drier months.'
-    },
+        'notes': 'Rainforest interior. Best clarity during drier months.'},
 }
 
 # ============================================================================
-# SKY CLARITY SEASONAL CALENDAR (v4.0.2 — factual causes restored)
+# SKY CLARITY SEASONAL CALENDAR
 # ============================================================================
 
 HAZE_SEASONAL_CALENDAR = {
@@ -658,7 +506,7 @@ HAZE_SEASONAL_CALENDAR = {
 }
 
 # ============================================================================
-# MOON PHASE CALCULATION
+# MOON PHASE
 # ============================================================================
 
 def calculate_moon_phase(date: datetime = None) -> Dict:
@@ -752,14 +600,12 @@ def get_milky_way_visibility(lat: float, lon: float, date: datetime = None) -> D
 
 
 # ============================================================================
-# NEW FEATURE (v4.1.0): BORTLE SCALE CLASSIFICATION
+# BORTLE SCALE
 # ============================================================================
 
 def get_bortle_scale(light_pollution_index: int, elevation_m: float,
                      protected_zone: Optional[Dict] = None) -> Dict:
-    """Estimate Bortle Class (1-9) from light pollution index + elevation + protection."""
     lp = max(0, min(10, light_pollution_index))
-
     if lp <= 0:       bortle = 1
     elif lp == 1:     bortle = 2
     elif lp == 2:     bortle = 3
@@ -771,15 +617,11 @@ def get_bortle_scale(light_pollution_index: int, elevation_m: float,
     elif lp == 8:     bortle = 8
     elif lp == 9:     bortle = 8
     else:             bortle = 9
-
     if elevation_m > 2000 and bortle > 1:   bortle -= 1
     elif elevation_m > 1000 and bortle > 2: bortle -= 1
-
     if protected_zone and protected_zone.get('is_inside') and bortle > 1:
         bortle -= 1
-
     bortle = max(1, min(9, bortle))
-
     bortle_info = {
         1: ('Excellent dark-sky site', 'Zodiacal light visible; Milky Way casts shadows; M33 visible to naked eye.', 7.6, 8.0),
         2: ('Typical truly dark site', 'Milky Way highly structured; M33 easily visible; airglow visible.', 7.1, 7.5),
@@ -792,7 +634,6 @@ def get_bortle_scale(light_pollution_index: int, elevation_m: float,
         9: ('Inner-city sky', 'Entire sky brightly lit; only Moon, planets, and few bright stars visible.', 3.6, 4.0),
     }
     label, desc, mag_low, mag_high = bortle_info[bortle]
-
     return {
         'bortle_class': bortle,
         'bortle_label': label,
@@ -808,38 +649,34 @@ def get_bortle_scale(light_pollution_index: int, elevation_m: float,
 
 
 # ============================================================================
-# NEW FEATURE (v4.1.1): NASA FIRMS SATELLITE FIRE/HOTSPOT OVERLAY
+# NASA FIRMS (SECURE - key from Streamlit secrets)
 # ============================================================================
-# 🔐 SECURE: API key is read from Streamlit secrets (never in source code)
-# ============================================================================
+
+def _get_nasa_firms_key() -> str:
+    """Retrieve NASA FIRMS API key from Streamlit secrets, env var, or demo fallback."""
+    key = ""
+    try:
+        key = st.secrets.get("NASA_FIRMS_KEY", "")
+    except Exception:
+        key = ""
+    if not key:
+        key = os.environ.get("NASA_FIRMS_KEY", "")
+    if not key:
+        key = "demo"
+    return key
+
 
 def get_firms_fire_hotspots(bbox: tuple = (0.5, 108.0, 8.0, 120.0),
                              days: int = 1) -> Optional[List[Dict]]:
-    """
-    Fetch active fire hotspots within a bounding box from NASA FIRMS.
-    bbox = (min_lat, min_lon, max_lat, max_lon)
-    days = 1 to 10 (days back from today)
-    🔐 API key read from st.secrets["NASA_FIRMS_KEY"] — never in source code.
-    """
+    """Fetch NASA FIRMS fire hotspots. Key sourced securely from st.secrets."""
     try:
-        # ============================================================
-        # SECURE NASA FIRMS API KEY (v4.1.1)
-        # Priority: 1) Streamlit secrets  2) Env var  3) Demo fallback
-        # ============================================================
-        nasa_firms_key = ""
-        try:
-            nasa_firms_key = st.secrets.get("NASA_FIRMS_KEY", "")
-        except Exception:
-            nasa_firms_key = ""
-        if not nasa_firms_key:
-            nasa_firms_key = os.environ.get("NASA_FIRMS_KEY", "")
-        if not nasa_firms_key:
-            # Demo endpoint fallback — will likely be rate-limited
-            nasa_firms_key = "demo"
-
+        nasa_firms_key = _get_nasa_firms_key()
         min_lat, min_lon, max_lat, max_lon = bbox
         area = f"{min_lon},{min_lat},{max_lon},{max_lat}"
-        url = f"https://firms.modaps.eosdis.nasa.gov/api/area/csv/{nasa_firms_key}/VIIRS_SNPP_NRT/{area}/{days}"
+        url = (
+            "https://firms.modaps.eosdis.nasa.gov/api/area/csv/"
+            f"{nasa_firms_key}/VIIRS_SNPP_NRT/{area}/{days}"
+        )
         r = requests.get(url, timeout=8)
         if r.status_code != 200:
             return None
@@ -861,14 +698,13 @@ def get_firms_fire_hotspots(bbox: tuple = (0.5, 108.0, 8.0, 120.0),
             if len(parts) < max(lat_idx, lon_idx) + 1:
                 continue
             try:
-                fire = {
+                fires.append({
                     'lat': float(parts[lat_idx]),
                     'lon': float(parts[lon_idx]),
                     'brightness': float(parts[bright_idx]) if bright_idx < len(parts) else None,
                     'confidence': parts[conf_idx] if conf_idx is not None and conf_idx < len(parts) else 'unknown',
                     'date': parts[date_idx] if date_idx is not None and date_idx < len(parts) else '',
-                }
-                fires.append(fire)
+                })
             except (ValueError, IndexError):
                 continue
         return fires
@@ -877,12 +713,10 @@ def get_firms_fire_hotspots(bbox: tuple = (0.5, 108.0, 8.0, 120.0),
 
 
 def classify_haze_source(fires: List[Dict], location_lat: float, location_lon: float) -> Dict:
-    """Given a list of fire hotspots, classify their potential impact on a location."""
+    """Classify potential impact of fire hotspots on a location."""
     if not fires:
         return {
-            'fire_count': 0,
-            'nearest_fire_km': None,
-            'upwind_fires': 0,
+            'fire_count': 0, 'nearest_fire_km': None, 'upwind_fires': 0,
             'risk_level': 'None',
             'summary': 'No active fire hotspots detected in region.',
         }
@@ -892,8 +726,8 @@ def classify_haze_source(fires: List[Dict], location_lat: float, location_lon: f
     for f in fires:
         dlat = math.radians(f['lat'] - location_lat)
         dlon = math.radians(f['lon'] - location_lon)
-        a = math.sin(dlat/2)**2 + math.cos(math.radians(location_lat)) * \
-            math.cos(math.radians(f['lat'])) * math.sin(dlon/2)**2
+        a = math.sin(dlat / 2) ** 2 + math.cos(math.radians(location_lat)) * \
+            math.cos(math.radians(f['lat'])) * math.sin(dlon / 2) ** 2
         dist_km = R * 2 * math.asin(min(1, math.sqrt(a)))
         if nearest_km is None or dist_km < nearest_km:
             nearest_km = dist_km
@@ -921,11 +755,10 @@ def classify_haze_source(fires: List[Dict], location_lat: float, location_lon: f
 
 
 # ============================================================================
-# NEW FEATURE (v4.1.0): 7-DAY STARGAZING FORECAST
+# 7-DAY FORECAST
 # ============================================================================
 
 def get_7day_forecast(location: Dict) -> Optional[Dict]:
-    """Fetch 7-day daily + hourly forecast from Open-Meteo for a location."""
     try:
         url = "https://api.open-meteo.com/v1/forecast"
         params = {
@@ -953,17 +786,13 @@ def score_forecast_night(daily_data: Dict, hourly_data: Dict, date_str: str,
                          location_lat: float, location_lon: float,
                          protected_zone: Optional[Dict] = None,
                          elevation_m: float = 0) -> Dict:
-    """Score a single night from the 7-day forecast for stargazing suitability."""
     times = hourly_data.get('time', [])
     clouds = hourly_data.get('cloud_cover', [])
     visibility = hourly_data.get('visibility', [])
     humidity = hourly_data.get('relative_humidity_2m', [])
     temps = hourly_data.get('temperature_2m', [])
 
-    night_clouds = []
-    night_visibility = []
-    night_humidity = []
-    night_temps = []
+    night_clouds, night_visibility, night_humidity, night_temps = [], [], [], []
     for i, t in enumerate(times):
         if t.startswith(date_str):
             hour = int(t.split('T')[1].split(':')[0])
@@ -1014,10 +843,8 @@ def score_forecast_night(daily_data: Dict, hourly_data: Dict, date_str: str,
         moon_phase = moon['phase_name']
         moon_emoji = moon['emoji']
     except Exception:
-        moon_penalty = 10
-        moon_illum = 50
-        moon_phase = 'Unknown'
-        moon_emoji = '🌙'
+        moon_penalty = 10; moon_illum = 50
+        moon_phase = 'Unknown'; moon_emoji = '🌙'
 
     final_score = max(0, min(100, night_score - moon_penalty))
 
@@ -1028,17 +855,14 @@ def score_forecast_night(daily_data: Dict, hourly_data: Dict, date_str: str,
     else: rating, emoji = 'Poor', '❌'
 
     return {
-        'date': date_str,
-        'score': round(final_score, 1),
-        'rating': rating,
-        'emoji': emoji,
+        'date': date_str, 'score': round(final_score, 1),
+        'rating': rating, 'emoji': emoji,
         'avg_cloud_cover': round(avg_cloud, 1) if avg_cloud is not None else None,
         'avg_humidity': round(avg_hum, 1) if avg_hum is not None else None,
         'avg_visibility_km': round(avg_vis, 1) if avg_vis is not None else None,
         'avg_temp': round(avg_temp, 1) if avg_temp is not None else None,
         'moon_illumination': moon_illum,
-        'moon_phase': moon_phase,
-        'moon_emoji': moon_emoji,
+        'moon_phase': moon_phase, 'moon_emoji': moon_emoji,
     }
 
 
@@ -1059,8 +883,7 @@ def calculate_astrophotography_scores(result_data: Dict, moon_phase: Dict) -> Di
     haze_detected = haze_data.get('detected', False)
     is_smoke_haze = haze_detected and haze_severity not in ['Fog', 'Excellent']
 
-    naked_eye = base_score
-    naked_eye -= (moon_illum / 100.0) * 25
+    naked_eye = base_score - (moon_illum / 100.0) * 25
     if lp_index >= 5: naked_eye -= 10
     if protected: naked_eye += 5
     if is_smoke_haze:
@@ -1070,8 +893,7 @@ def calculate_astrophotography_scores(result_data: Dict, moon_phase: Dict) -> Di
         elif haze_severity == 'Good': naked_eye -= 3
     naked_eye = max(0, min(100, naked_eye))
 
-    telescope = base_score
-    telescope -= (moon_illum / 100.0) * 12
+    telescope = base_score - (moon_illum / 100.0) * 12
     if elevation_m > 1000: telescope += 8
     elif elevation_m > 500: telescope += 4
     if humidity and humidity > 85: telescope -= 8
@@ -1083,8 +905,7 @@ def calculate_astrophotography_scores(result_data: Dict, moon_phase: Dict) -> Di
         elif haze_severity == 'Good': telescope -= 2
     telescope = max(0, min(100, telescope))
 
-    astro = base_score
-    astro -= (moon_illum / 100.0) * 30
+    astro = base_score - (moon_illum / 100.0) * 30
     if lp_index >= 8: astro -= 25
     elif lp_index >= 5: astro -= 12
     elif lp_index <= 1: astro += 8
@@ -1122,7 +943,7 @@ def calculate_astrophotography_scores(result_data: Dict, moon_phase: Dict) -> Di
 
 
 # ============================================================================
-# SKY CLARITY DETECTION ENGINE
+# SKY CLARITY DETECTION
 # ============================================================================
 
 def detect_haze(weather_data: Optional[Dict], air_quality: Optional[Dict],
@@ -1162,24 +983,12 @@ def detect_haze(weather_data: Optional[Dict], air_quality: Optional[Dict],
             result['waqi_station_distance_km'] = air_quality.get('waqi_station_distance_km')
             result['ground_verified'] = True
         if pm25 is not None:
-            if pm25 < 12:
-                result['pm25_level'] = 'Good'
-                result['indicators'].append(f"PM2.5: {pm25:.1f} µg/m³ (Good)")
-            elif pm25 < 35:
-                result['pm25_level'] = 'Moderate'
-                result['indicators'].append(f"PM2.5: {pm25:.1f} µg/m³ (Moderate)")
-            elif pm25 < 55:
-                result['pm25_level'] = 'Unhealthy for Sensitive'
-                result['indicators'].append(f"PM2.5: {pm25:.1f} µg/m³ (Unhealthy for sensitive groups)")
-            elif pm25 < 150:
-                result['pm25_level'] = 'Unhealthy'
-                result['indicators'].append(f"PM2.5: {pm25:.1f} µg/m³ (UNHEALTHY)")
-            elif pm25 < 250:
-                result['pm25_level'] = 'Very Unhealthy'
-                result['indicators'].append(f"PM2.5: {pm25:.1f} µg/m³ (VERY UNHEALTHY)")
-            else:
-                result['pm25_level'] = 'Hazardous'
-                result['indicators'].append(f"PM2.5: {pm25:.1f} µg/m³ (HAZARDOUS)")
+            if pm25 < 12: result['pm25_level'] = 'Good'; result['indicators'].append(f"PM2.5: {pm25:.1f} µg/m³ (Good)")
+            elif pm25 < 35: result['pm25_level'] = 'Moderate'; result['indicators'].append(f"PM2.5: {pm25:.1f} µg/m³ (Moderate)")
+            elif pm25 < 55: result['pm25_level'] = 'Unhealthy for Sensitive'; result['indicators'].append(f"PM2.5: {pm25:.1f} µg/m³ (Unhealthy for sensitive groups)")
+            elif pm25 < 150: result['pm25_level'] = 'Unhealthy'; result['indicators'].append(f"PM2.5: {pm25:.1f} µg/m³ (UNHEALTHY)")
+            elif pm25 < 250: result['pm25_level'] = 'Very Unhealthy'; result['indicators'].append(f"PM2.5: {pm25:.1f} µg/m³ (VERY UNHEALTHY)")
+            else: result['pm25_level'] = 'Hazardous'; result['indicators'].append(f"PM2.5: {pm25:.1f} µg/m³ (HAZARDOUS)")
         if aqi is not None:
             if aqi <= 50: result['aqi_category'] = 'Good'
             elif aqi <= 100: result['aqi_category'] = 'Moderate'
@@ -1292,40 +1101,38 @@ def detect_haze(weather_data: Optional[Dict], air_quality: Optional[Dict],
             "💛 Air quality note: Consider limiting prolonged outdoor time. "
             "Sensitive individuals may prefer a mask. Light activity is fine."
         )
+        result['action_recommendation'] = (
+            "🌫️ Better to wait for clearer skies. Try again in 2-3 days after rainfall, "
+            "or choose a site with better air flow."
+        )
     elif result['severity'] == 'Fair':
         result['health_advisory'] = (
             "🌤️ Fair conditions. Some atmospheric softness in the air. "
             "Sensitive individuals may notice reduced clarity. Fine for most activities."
+        )
+        result['action_recommendation'] = (
+            "🌤️ Viewing conditions are fair. Bright objects still visible. "
+            "Faint deep-sky objects may be soft. Consider a clearer night for astrophotography."
         )
     elif result['severity'] == 'Good':
         result['health_advisory'] = (
             "✨ Good conditions. Slight atmospheric softness — barely noticeable. "
             "Fine for all outdoor activities."
         )
-    else:
-        result['health_advisory'] = "🌟 Excellent air quality. Perfect for all outdoor activities."
-
-    if result['severity'] in ['Low', 'Very Low']:
-        result['action_recommendation'] = (
-            "🌫️ Better to wait for clearer skies. Try again in 2-3 days after rainfall, "
-            "or choose a site with better air flow."
-        )
-    elif result['severity'] == 'Fair':
-        result['action_recommendation'] = (
-            "🌤️ Viewing conditions are fair. Bright objects still visible. "
-            "Faint deep-sky objects may be soft. Consider a clearer night for astrophotography."
-        )
-    elif result['severity'] == 'Good':
         result['action_recommendation'] = (
             "✨ Good conditions for stargazing tonight. "
             "Bright objects clearly visible. Deep-sky viewing is possible."
         )
     else:
-        result['action_recommendation'] = (
-            "🌟 Excellent air quality. Perfect for all types of stargazing."
-        )
+        result['health_advisory'] = "🌟 Excellent air quality. Perfect for all outdoor activities."
+        result['action_recommendation'] = "🌟 Excellent air quality. Perfect for all types of stargazing."
+
     return result
 
+
+# ============================================================================
+# AIR QUALITY APIs
+# ============================================================================
 
 def get_air_quality(location: Dict) -> Optional[Dict]:
     try:
@@ -1373,8 +1180,8 @@ def get_waqi_air_quality(location: Dict) -> Optional[Dict]:
             R = 6371
             dlat = math.radians(st_lat - location['lat'])
             dlon = math.radians(st_lon - location['lon'])
-            a = math.sin(dlat/2)**2 + math.cos(math.radians(location['lat'])) * \
-                math.cos(math.radians(st_lat)) * math.sin(dlon/2)**2
+            a = math.sin(dlat / 2) ** 2 + math.cos(math.radians(location['lat'])) * \
+                math.cos(math.radians(st_lat)) * math.sin(dlon / 2) ** 2
             dist_km = R * 2 * math.asin(min(1, math.sqrt(a)))
             if dist_km > 100:
                 return None
@@ -1410,27 +1217,37 @@ def get_merged_air_quality(location: Dict) -> Optional[Dict]:
             'source': 'WAQI ground station only', 'time': None,
         }
     if waqi is None:
-        openmeteo['waqi_pm25'] = None; openmeteo['waqi_pm10'] = None
-        openmeteo['waqi_aqi'] = None; openmeteo['waqi_station'] = None
+        openmeteo['waqi_pm25'] = None
+        openmeteo['waqi_pm10'] = None
+        openmeteo['waqi_aqi'] = None
+        openmeteo['waqi_station'] = None
         openmeteo['waqi_station_distance_km'] = None
         openmeteo['openmeteo_pm25'] = openmeteo.get('pm2_5')
         openmeteo['openmeteo_aqi'] = openmeteo.get('us_aqi')
         openmeteo['source'] = 'Open-Meteo Air Quality (Live)'
         return openmeteo
-    om_pm25 = openmeteo.get('pm2_5'); waqi_pm25 = waqi.get('pm2_5')
-    om_aqi = openmeteo.get('us_aqi'); waqi_aqi = waqi.get('us_aqi')
+    om_pm25 = openmeteo.get('pm2_5')
+    waqi_pm25 = waqi.get('pm2_5')
+    om_aqi = openmeteo.get('us_aqi')
+    waqi_aqi = waqi.get('us_aqi')
     merged_pm25 = max([x for x in [om_pm25, waqi_pm25] if x is not None], default=None)
     merged_aqi = max([x for x in [om_aqi, waqi_aqi] if x is not None], default=None)
     result = dict(openmeteo)
     result['pm2_5'] = merged_pm25
     result['us_aqi'] = merged_aqi
-    om_pm10 = openmeteo.get('pm10'); waqi_pm10 = waqi.get('pm10')
-    if om_pm10 is not None and waqi_pm10 is not None: result['pm10'] = max(om_pm10, waqi_pm10)
-    elif waqi_pm10 is not None: result['pm10'] = waqi_pm10
-    result['waqi_pm25'] = waqi_pm25; result['waqi_pm10'] = waqi_pm10
-    result['waqi_aqi'] = waqi_aqi; result['waqi_station'] = waqi.get('station')
+    om_pm10 = openmeteo.get('pm10')
+    waqi_pm10 = waqi.get('pm10')
+    if om_pm10 is not None and waqi_pm10 is not None:
+        result['pm10'] = max(om_pm10, waqi_pm10)
+    elif waqi_pm10 is not None:
+        result['pm10'] = waqi_pm10
+    result['waqi_pm25'] = waqi_pm25
+    result['waqi_pm10'] = waqi_pm10
+    result['waqi_aqi'] = waqi_aqi
+    result['waqi_station'] = waqi.get('station')
     result['waqi_station_distance_km'] = waqi.get('station_distance_km')
-    result['openmeteo_pm25'] = om_pm25; result['openmeteo_aqi'] = om_aqi
+    result['openmeteo_pm25'] = om_pm25
+    result['openmeteo_aqi'] = om_aqi
     result['source'] = 'Open-Meteo CAMS + WAQI ground station'
     return result
 
@@ -1481,11 +1298,14 @@ def generate_recommendation_strategy(result_data: Dict) -> Dict:
         'immediate_actions': [], 'short_term_actions': [], 'long_term_actions': [],
         'investment_required': 'Low', 'overall_feasibility': 'High', 'risk_level': 'Low',
     }
+
     def add_action(bucket, text, priority, cost):
         recommendations[bucket].append({'text': text, 'priority': priority, 'cost': cost})
+
     haze_severity = haze.get('severity', 'Excellent')
     is_fog = haze.get('is_fog', False)
     fog_type = haze.get('fog_type', None)
+
     if is_fog:
         if fog_type == 'tropical':
             fog_note = "Tropical highland fog (warm & humid, common at Cameron/Genting/Kundasang)"
@@ -1507,12 +1327,14 @@ def generate_recommendation_strategy(result_data: Dict) -> Dict:
         add_action('short_term_actions',
             f'✨ Slight atmospheric softness. Excellent viewing conditions tonight.',
             'Low', '💸')
+
     if protected_zone:
         inside = protected_zone.get('is_inside', True)
         tag = '🏞️ PROTECTED DARK-SKY ZONE' if inside else '🏞️ NEAR PROTECTED ZONE'
         add_action('immediate_actions',
             f'{tag}: {"" if inside else "Nearby "}"{protected_zone["name"]}" ({protected_zone["designation"]}, ~{protected_zone.get("distance_km", 0):.1f} km). {protected_zone["description"]}.',
             'Low', '💸')
+
     if elevation_m < 20:
         add_action('short_term_actions',
             '⛰️ Low elevation (<20m). More atmosphere to look through. Consider portable telescope platforms.',
@@ -1534,6 +1356,7 @@ def generate_recommendation_strategy(result_data: Dict) -> Dict:
             f'🏔️ EXCEPTIONAL HIGH-ALTITUDE SITE ({elevation_m:.0f}m). World-class observatory potential. Very thin atmosphere — likely ABOVE the light dome.',
             'Low', '💸💸💸')
         recommendations['investment_required'] = 'Moderate'
+
     if light_pollution >= 8 and not protected_zone:
         add_action('immediate_actions',
             '🚨 CRITICAL: HIGH LIGHT POLLUTION. Need light shields or relocate to darker site.',
@@ -1549,6 +1372,7 @@ def generate_recommendation_strategy(result_data: Dict) -> Dict:
         add_action('immediate_actions',
             '✅ DARK-SKY CONDITIONS. Excellent for galaxy viewing and deep-sky photography.',
             'Low', '💸')
+
     if cloud_risk == 'High' and not protected_zone:
         add_action('short_term_actions',
             '☁️ HIGH SEASONAL CLOUD RISK. Plan for flexible viewing schedules and indoor planetarium backup.',
@@ -1559,6 +1383,7 @@ def generate_recommendation_strategy(result_data: Dict) -> Dict:
         add_action('immediate_actions',
             '✅ LOW CLOUD RISK. Excellent year-round viewing potential.',
             'Low', '💸')
+
     if lat_deg < 3:
         add_action('immediate_actions',
             f'🌌 EXCELLENT LATITUDE ({lat_deg:.1f}°N). Near equator — can view BOTH Northern AND Southern sky objects!',
@@ -1571,6 +1396,7 @@ def generate_recommendation_strategy(result_data: Dict) -> Dict:
         add_action('short_term_actions',
             f'🌌 MODERATE LATITUDE ({lat_deg:.1f}°N). Still good viewing. Milky Way visible seasonally.',
             'Low', '💸')
+
     if cloud_cover is not None:
         if cloud_cover > 70:
             add_action('short_term_actions',
@@ -1580,10 +1406,12 @@ def generate_recommendation_strategy(result_data: Dict) -> Dict:
             add_action('immediate_actions',
                 f'✅ EXCELLENT CLEAR SKIES NOW ({cloud_cover:.0f}% cloud cover). Ideal viewing conditions tonight!',
                 'Low', '💸')
+
     if humidity is not None and humidity > 85:
         add_action('short_term_actions',
             f'💧 HIGH HUMIDITY ({humidity:.0f}%). Install dew heaters for telescopes. Consider dehumidified storage.',
             'Medium', '💸💸')
+
     infra_details = details.get('infrastructure_access', {}).get('value', {})
     if isinstance(infra_details, dict):
         if infra_details.get('airports', 0) == 0:
@@ -1598,13 +1426,16 @@ def generate_recommendation_strategy(result_data: Dict) -> Dict:
             add_action('long_term_actions',
                 '🏨 No accommodation nearby. Build eco-lodge or observatory guest facilities.',
                 'Medium', '💸💸💸💸')
+
     critical_count = sum(1 for a in recommendations['immediate_actions'] if a['priority'] == 'Critical')
     high_count = sum(1 for a in recommendations['short_term_actions'] if a['priority'] == 'High')
+
     if score >= 80: score_band, score_emoji = 'Excellent', '🌟'
     elif score >= 65: score_band, score_emoji = 'Good', '✨'
     elif score >= 50: score_band, score_emoji = 'Moderate', '⭐'
     elif score >= 35: score_band, score_emoji = 'Limited', '⚠️'
     else: score_band, score_emoji = 'Poor', '❌'
+
     if critical_count >= 3:
         feasibility = '❌ Poor - Major critical issues must be resolved before development'
         risk_level = 'Very High'
@@ -1629,16 +1460,19 @@ def generate_recommendation_strategy(result_data: Dict) -> Dict:
             'Excellent': 'Low', 'Good': 'Low',
             'Moderate': 'Medium', 'Limited': 'High', 'Poor': 'Very High',
         }[score_band]
+
     recommendations['overall_feasibility'] = feasibility
     recommendations['risk_level'] = risk_level
     recommendations['critical_action_count'] = critical_count
     recommendations['high_action_count'] = high_count
     recommendations['total_action_count'] = len(
-        recommendations['immediate_actions'] + recommendations['short_term_actions'] + recommendations['long_term_actions'])
+        recommendations['immediate_actions'] +
+        recommendations['short_term_actions'] +
+        recommendations['long_term_actions'])
     recommendations['timeline_summary'] = {
         'immediate': f"{len(recommendations['immediate_actions'])} actions (0-6 months)",
         'short_term': f"{len(recommendations['short_term_actions'])} actions (6-18 months)",
-        'long_term': f"{len(recommendations['long_term_actions'])} actions (18-36 months)"
+        'long_term': f"{len(recommendations['long_term_actions'])} actions (18-36 months)",
     }
     return recommendations
 
@@ -1652,8 +1486,10 @@ class APICache:
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(exist_ok=True)
         self.ttl = timedelta(hours=ttl_hours)
+
     def _get_cache_key(self, url, params):
         return hashlib.md5((url + json.dumps(params, sort_keys=True)).encode()).hexdigest()
+
     def get(self, url, params):
         cf = self.cache_dir / f"{self._get_cache_key(url, params)}.json"
         if cf.exists():
@@ -1663,21 +1499,24 @@ class APICache:
                     with open(cf, 'r') as f: return json.load(f)
                 except Exception: return None
         return None
+
     def set(self, url, params, data):
         cf = self.cache_dir / f"{self._get_cache_key(url, params)}.json"
         try:
             with open(cf, 'w') as f: json.dump(data, f)
         except Exception: pass
+
     def clear(self):
         for f in self.cache_dir.glob("*.json"): f.unlink()
+
     def get_stats(self):
         return {'total_cached': len(list(self.cache_dir.glob("*.json"))), 'cache_dir': str(self.cache_dir)}
 
+
 api_cache = APICache()
 
-
 # ============================================================================
-# ALL LOCATIONS — COMBINED (West Malaysia + Sabah + Sarawak)
+# LOCATIONS
 # ============================================================================
 
 PERLIS_LOCATIONS = {
@@ -1829,7 +1668,6 @@ JOHOR_LOCATIONS = {
     'Pagoh': (2.1500, 102.7667), 'Tangkak': (2.2667, 102.5500),
     'Gemas (Johor side)': (2.5833, 102.6167), 'Bandar Penawar': (1.5333, 104.2333),
 }
-
 SABAH_LOCATIONS = {
     'Kota Kinabalu City Center': (5.9804, 116.0735), 'Tanjung Aru Beach': (5.9400, 116.0500),
     'Likas Bay': (5.9500, 116.0200), 'Signal Hill': (5.9750, 116.0700),
@@ -1949,9 +1787,8 @@ WEST_MALAYSIA_LOCATIONS = {
 BORNEO_LOCATIONS = {**SABAH_LOCATIONS, **SARAWAK_LOCATIONS}
 ALL_MALAYSIA_LOCATIONS = {**WEST_MALAYSIA_LOCATIONS, **BORNEO_LOCATIONS}
 
-
 # ============================================================================
-# STARGAZING CANDIDATES — COMBINED
+# STARGAZING CANDIDATES
 # ============================================================================
 
 STARGAZING_CANDIDATES = {
@@ -2056,9 +1893,8 @@ STARGAZING_CANDIDATES = {
     'Kuala Baram, Sarawak': (4.5800, 114.0000),
 }
 
-
 # ============================================================================
-# STATIC FALLBACK DATA (Combined)
+# STATIC DATA
 # ============================================================================
 
 STATIC_AIRPORTS = {
@@ -2240,7 +2076,6 @@ STARGAZING_FACILITY_TAGS = {
     'parking': [('amenity', 'parking')],
 }
 
-
 # ============================================================================
 # DATA CLASSES
 # ============================================================================
@@ -2281,7 +2116,6 @@ class MemoryEntry:
     timestamp: str = ""
     parameters_used: Dict = field(default_factory=dict)
 
-
 # ============================================================================
 # MEMORY REPOSITORY
 # ============================================================================
@@ -2290,6 +2124,7 @@ class MemoryRepository:
     def __init__(self, db_path: str = "stargazex_memory.db"):
         self.db_path = db_path
         self._init_database()
+
     def _init_database(self):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -2309,7 +2144,9 @@ class MemoryRepository:
                 usage_count INTEGER DEFAULT 1, last_updated TEXT
             )
         """)
-        conn.commit(); conn.close()
+        conn.commit()
+        conn.close()
+
     def store_analysis(self, entry: MemoryEntry):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -2322,7 +2159,9 @@ class MemoryRepository:
               1 if entry.success else 0, entry.execution_time,
               json.dumps(entry.parameters_used), entry.timestamp,
               pickle.dumps(entry.query_embedding)))
-        conn.commit(); conn.close()
+        conn.commit()
+        conn.close()
+
     def get_all_analyses(self, limit: int = 20) -> List[Dict]:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -2334,14 +2173,17 @@ class MemoryRepository:
             'parameters': json.loads(row[6]) if row[6] else {},
             'timestamp': row[7]
         } for row in rows]
-        conn.close(); return results
+        conn.close()
+        return results
+
     def find_similar_analyses(self, query: str, limit: int = 5) -> List[Dict]:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM analysis_memory ORDER BY timestamp DESC LIMIT 100")
         rows = cursor.fetchall()
         if not query or not query.strip():
-            conn.close(); return []
+            conn.close()
+            return []
         keywords = query.lower().split()
         results = []
         for row in rows:
@@ -2357,6 +2199,7 @@ class MemoryRepository:
         conn.close()
         results.sort(key=lambda x: x['match_score'], reverse=True)
         return results[:limit]
+
     def get_learned_parameter(self, analysis_type: str, parameter_name: str) -> Optional[str]:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -2365,8 +2208,10 @@ class MemoryRepository:
             WHERE analysis_type = ? AND parameter_name = ?
             ORDER BY success_rate DESC LIMIT 1
         """, (analysis_type, parameter_name))
-        row = cursor.fetchone(); conn.close()
+        row = cursor.fetchone()
+        conn.close()
         return row[0] if row else None
+
     def update_learned_parameter(self, analysis_type: str, parameter_name: str,
                                   value: str, success: bool):
         conn = sqlite3.connect(self.db_path)
@@ -2390,7 +2235,9 @@ class MemoryRepository:
                 VALUES (?, ?, ?, ?, 1, ?)
             """, (analysis_type, parameter_name, value,
                   1.0 if success else 0.0, datetime.now().isoformat()))
-        conn.commit(); conn.close()
+        conn.commit()
+        conn.close()
+
     def get_analysis_stats(self) -> Dict:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -2404,9 +2251,8 @@ class MemoryRepository:
         return {
             'total_analyses': total, 'successful_analyses': successful,
             'success_rate': successful / total if total > 0 else 0,
-            'avg_execution_time': avg_time
+            'avg_execution_time': avg_time,
         }
-
 
 # ============================================================================
 # STRATEGY PATTERN
@@ -2420,8 +2266,6 @@ class AnalysisStrategy(ABC):
 
 
 class StargazingSuitabilityStrategy(AnalysisStrategy):
-    """HYBRID Strategy v4.1.1 (Combined Malaysia + Sky Clarity + Bortle + Forecast + Satellite)"""
-
     def get_name(self) -> str:
         return "stargazeX Suitability Analysis v4.1.1 (Malaysia · Sky Clarity+)"
 
@@ -2429,7 +2273,8 @@ class StargazingSuitabilityStrategy(AnalysisStrategy):
         R = 6371
         dlat = math.radians(lat2 - lat1)
         dlon = math.radians(lon2 - lon1)
-        a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon/2)**2
+        a = math.sin(dlat / 2) ** 2 + math.cos(math.radians(lat1)) * \
+            math.cos(math.radians(lat2)) * math.sin(dlon / 2) ** 2
         return R * 2 * math.asin(min(1, math.sqrt(a)))
 
     def _lookup_peak_elevation(self, name: str) -> Optional[float]:
@@ -2439,6 +2284,14 @@ class StargazingSuitabilityStrategy(AnalysisStrategy):
             if peak_key in name_lower:
                 return float(elev)
         return None
+
+    def _elev_to_score(self, elev):
+        if elev > 1000: return 5.0
+        elif elev > 500: return 4.8
+        elif elev > 200: return 4.3
+        elif elev > 100: return 3.8
+        elif elev > 50: return 3.3
+        else: return 2.5
 
     def _get_elevation_quick(self, location: Location) -> tuple:
         if location.name and location.name in CANDIDATE_ELEVATIONS:
@@ -2468,14 +2321,6 @@ class StargazingSuitabilityStrategy(AnalysisStrategy):
             elif 2.5 < lat and 114.0 < lon < 115.5: return 4.0, 500, 'Fallback: Sarawak interior'
             else: return 2.5, 30, 'Fallback: Lowland area'
 
-    def _elev_to_score(self, elev):
-        if elev > 1000: return 5.0
-        elif elev > 500: return 4.8
-        elif elev > 200: return 4.3
-        elif elev > 100: return 3.8
-        elif elev > 50: return 3.3
-        else: return 2.5
-
     def _check_protected_zone(self, location: Location) -> Optional[Dict]:
         best = None
         for name, (lat, lon, radius_km, designation, desc) in PROTECTED_DARK_SKY_ZONES.items():
@@ -2487,11 +2332,13 @@ class StargazingSuitabilityStrategy(AnalysisStrategy):
                     'distance_km': round(dist, 1), 'radius_km': radius_km,
                     'is_inside': is_inside,
                 }
-                if best is None: best = candidate
+                if best is None:
+                    best = candidate
                 else:
                     best_priority = (0 if best['is_inside'] else 1, best['distance_km'])
                     cand_priority = (0 if is_inside else 1, dist)
-                    if cand_priority < best_priority: best = candidate
+                    if cand_priority < best_priority:
+                        best = candidate
         return best
 
     def _get_weather(self, location: Location) -> Optional[Dict]:
@@ -2580,7 +2427,7 @@ class StargazingSuitabilityStrategy(AnalysisStrategy):
             'airports': 1 if min_dist < 60 else 0,
             'major_roads': 2 if min_dist < 30 else 0,
             'power_facilities': 1 if min_dist < 40 else 0,
-            'accommodation': 1 if min_dist < 20 else 0
+            'accommodation': 1 if min_dist < 20 else 0,
         }
         if min_dist < 30: return 4.5, details, 'Geographic: Near airport'
         elif min_dist < 60: return 3.5, details, 'Geographic: Airport nearby'
@@ -2599,7 +2446,7 @@ class StargazingSuitabilityStrategy(AnalysisStrategy):
         details = {
             'forest_areas': 30 if min_dist > 50 else 10,
             'developed_areas': 2 if min_dist > 50 else 10,
-            'open_areas': 40 if min_dist > 30 else 15
+            'open_areas': 40 if min_dist > 30 else 15,
         }
         if min_dist > 80: return 5.0, details, 'Geographic: Abundant land'
         elif min_dist > 50: return 4.0, details, 'Geographic: Good land'
@@ -2663,6 +2510,7 @@ class StargazingSuitabilityStrategy(AnalysisStrategy):
         elevation_score, elevation_m, elev_source = self._get_elevation_quick(location)
         protected_zone = self._check_protected_zone(location)
 
+        # 1. LIGHT POLLUTION
         lp_score, lp_index, lp_source = self._geographic_score_light_pollution(location, elevation_m)
         if protected_zone and protected_zone.get('is_inside'):
             lp_score = max(lp_score, 4.7); lp_index = min(lp_index, 1)
@@ -2675,23 +2523,26 @@ class StargazingSuitabilityStrategy(AnalysisStrategy):
         details['light_pollution'] = {
             'score': lp_score,
             'value': f"Level {lp_index}/10" if not (protected_zone and protected_zone.get('is_inside')) else f"Level {lp_index}/10 (Protected)",
-            'weight': weights['light_pollution'], 'source': lp_source
+            'weight': weights['light_pollution'], 'source': lp_source,
         }
 
+        # 2. ATMOSPHERIC CLARITY
         clarity_score, coastal_dist, clarity_source = self._geographic_score_atmospheric_clarity(location, elevation_m)
         data_source_details.append(f"Clarity: {clarity_source}")
         scores['atmospheric_clarity'] = clarity_score
         details['atmospheric_clarity'] = {
             'score': clarity_score,
             'value': f"{coastal_dist:.0f}km from coast" if elevation_m < 1000 else f"High altitude ({elevation_m:.0f}m)",
-            'weight': weights['atmospheric_clarity'], 'source': clarity_source
+            'weight': weights['atmospheric_clarity'], 'source': clarity_source,
         }
 
+        # 3. ELEVATION
         data_source_details.append(f"Elevation: {elev_source} ({elevation_m:.0f}m)")
         scores['elevation'] = elevation_score
         details['elevation'] = {'score': elevation_score, 'value': f"{elevation_m:.0f}m",
                                 'weight': weights['elevation'], 'source': elev_source}
 
+        # 4. CLOUD RISK
         cloud_risk_score, cloud_risk, cloud_risk_source = self._geographic_score_cloud_risk(
             location.lat, location.lon, elevation_m, protected_zone)
         data_source_details.append(f"Cloud Risk: {cloud_risk_source}")
@@ -2699,24 +2550,28 @@ class StargazingSuitabilityStrategy(AnalysisStrategy):
         details['cloud_risk'] = {'score': cloud_risk_score, 'value': cloud_risk,
                                  'weight': weights['cloud_risk'], 'source': cloud_risk_source}
 
+        # 5. LATITUDE
         lat_score = self._score_latitudinal_advantage(location.lat)
         scores['latitudinal_advantage'] = lat_score
         details['latitudinal_advantage'] = {
             'score': lat_score, 'value': f"{abs(location.lat):.1f}°{'N' if location.lat > 0 else 'S'}",
             'weight': weights['latitudinal_advantage'], 'source': 'Geographic'}
 
+        # 6. INFRASTRUCTURE
         infra_score, infra_details, infra_source = self._geographic_score_infrastructure(location)
         data_source_details.append(f"Infrastructure: {infra_source}")
         scores['infrastructure_access'] = infra_score
         details['infrastructure_access'] = {'score': infra_score, 'value': infra_details,
                                              'weight': weights['infrastructure_access'], 'source': infra_source}
 
+        # 7. LAND
         land_score, land_details, land_source = self._geographic_score_land(location, protected_zone)
         data_source_details.append(f"Land: {land_source}")
         scores['land_availability'] = land_score
         details['land_availability'] = {'score': land_score, 'value': land_details,
                                          'weight': weights['land_availability'], 'source': land_source}
 
+        # 8. CLOUD COVER
         weather_data = self._get_weather(location)
         if weather_data:
             cc = weather_data.get('cloud_cover_pct')
@@ -2732,9 +2587,10 @@ class StargazingSuitabilityStrategy(AnalysisStrategy):
             'score': cc_score,
             'value': weather_data.get('cloud_cover_pct') and f"{weather_data['cloud_cover_pct']:.0f}%" or "N/A",
             'weight': weights['cloud_cover'],
-            'source': weather_data.get('source', 'Unavailable') if weather_data else 'Unavailable'
+            'source': weather_data.get('source', 'Unavailable') if weather_data else 'Unavailable',
         }
 
+        # HAZE / SKY CLARITY
         air_quality_data = get_merged_air_quality({'lat': location.lat, 'lon': location.lon})
         haze_data = detect_haze(weather_data, air_quality_data,
                                 {'lat': location.lat, 'lon': location.lon, 'elevation_m': elevation_m})
@@ -2757,11 +2613,14 @@ class StargazingSuitabilityStrategy(AnalysisStrategy):
                 data_source_details.append(
                     f"🌐 Air Quality Cross-Check: Open-Meteo {om_pm25:.1f} vs WAQI {waqi_pm25:.1f} µg/m³ ({station}{dist_note})")
 
+        # BASE SCORE
         total_score = sum(scores[k] * weights.get(k, 0) for k in scores if k in weights)
         max_possible = sum(weights.values()) * 5.0
         percentage = (total_score / max_possible) * 100 if max_possible > 0 else 0
 
-        penalty = 0.0; penalty_reasons = []
+        # PENALTIES
+        penalty = 0.0
+        penalty_reasons = []
         if not (protected_zone and protected_zone.get('is_inside')):
             if lp_index >= 8:
                 penalty += 20.0; penalty_reasons.append(f"Heavy light pollution (Level {lp_index}/10): -20%")
@@ -2804,10 +2663,12 @@ class StargazingSuitabilityStrategy(AnalysisStrategy):
         except Exception:
             pass
 
-        seen = set(); unique_details = []
+        seen = set()
+        unique_details = []
         for d in data_source_details:
             if d not in seen:
-                seen.add(d); unique_details.append(d)
+                seen.add(d)
+                unique_details.append(d)
 
         bortle = get_bortle_scale(lp_index, elevation_m, protected_zone)
         unique_details.append(f"🎯 Bortle Class {bortle['bortle_class']}/9 — {bortle['bortle_label']}")
@@ -2827,7 +2688,7 @@ class StargazingSuitabilityStrategy(AnalysisStrategy):
             'lat_deg': abs(location.lat), 'lon': location.lon, 'lat': location.lat,
             'protected_zone': protected_zone,
             'bortle': bortle,
-            'data_sources': [d for d in unique_details],
+            'data_sources': list(unique_details),
             'data_source_details': unique_details,
             'used_osm': osm_available, 'osm_data': osm_data if osm_available else None,
             'weather': weather_data,
@@ -2840,12 +2701,13 @@ class StargazingSuitabilityStrategy(AnalysisStrategy):
             'wind_direction_deg': weather_data.get('wind_direction_deg') if weather_data else None,
             'haze': haze_data, 'air_quality': air_quality_data,
             'used_fallback': True, 'from_cache': False,
-            'analysis_method': 'HYBRID v4.1.1 Malaysia: stargazeX Sky Clarity+ (WAQI + Peak Elevation + Inside/Near + Fog + Sky Clarity + Bortle + 7-Day Forecast + NASA FIRMS SECURE)'
+            'analysis_method': 'HYBRID v4.1.1 Malaysia: stargazeX Sky Clarity+ (SECURE NASA FIRMS)',
         }
 
 
 class ProximityAnalysisStrategy(AnalysisStrategy):
     def get_name(self): return "Proximity Analysis"
+
     def analyse(self, location, params):
         amenity_type = params.get('amenity_type', 'hotel')
         radius = params.get('radius', 5000)
@@ -2882,14 +2744,15 @@ class ProximityAnalysisStrategy(AnalysisStrategy):
 
 class StrategySelector:
     _strategies = {'stargazing': StargazingSuitabilityStrategy, 'proximity': ProximityAnalysisStrategy}
+
     @classmethod
     def get_strategy(cls, t):
         c = cls._strategies.get(t)
         if not c: raise ValueError(f"Unknown strategy: {t}")
         return c()
+
     @classmethod
     def available_strategies(cls): return list(cls._strategies.keys())
-
 
 # ============================================================================
 # RATE LIMITER
@@ -2897,17 +2760,19 @@ class StrategySelector:
 
 class RateLimiter:
     def __init__(self, calls_per_second=0.5):
-        self.calls_per_second = calls_per_second; self.last_call = 0
+        self.calls_per_second = calls_per_second
+        self.last_call = 0
+
     def wait(self):
         now = time.time()
         delta = now - self.last_call
         min_i = 1.0 / self.calls_per_second
-        if delta < min_i: time.sleep(min_i - delta)
+        if delta < min_i:
+            time.sleep(min_i - delta)
         self.last_call = time.time()
 
-
 # ============================================================================
-# MAIN AGENT
+# AGENT
 # ============================================================================
 
 class StargazeXAgent:
@@ -2952,7 +2817,7 @@ class StargazeXAgent:
         result = AnalysisResult(query=query, timestamp=datetime.now().isoformat())
         reasoning, atype = self.reason_about_query(query)
         for i, si in enumerate(reasoning):
-            result.steps.append(AnalysisStep(step_number=i+1, name=si['step'],
+            result.steps.append(AnalysisStep(step_number=i + 1, name=si['step'],
                                              description=si['reasoning'],
                                              status='completed', reasoning=si['reasoning']))
         if progress_callback: progress_callback(0.3, "Executing hybrid analysis...")
@@ -2986,11 +2851,11 @@ class StargazeXAgent:
                 if bortle:
                     method_note += f" | BORTLE: {bortle.get('bortle_class', '?')}/9"
                 result.steps.append(AnalysisStep(
-                    step_number=len(result.steps)+1, name="Data Source Validation",
+                    step_number=len(result.steps) + 1, name="Data Source Validation",
                     description=f"Method: {method_note}", status='completed',
                     reasoning=f"Used {'OSM + Geographic' if used_osm else 'Geographic'} rules"))
             result.steps.append(AnalysisStep(
-                step_number=len(result.steps)+1,
+                step_number=len(result.steps) + 1,
                 name=f"Execute {strategy.get_name()}",
                 description=f"Running {atype} analysis on {location.name or 'Malaysia location'}",
                 status='completed' if ar.get('success') else 'failed',
@@ -2999,7 +2864,7 @@ class StargazeXAgent:
             result.success = ar.get('success', False)
         except Exception as e:
             result.steps.append(AnalysisStep(
-                step_number=len(result.steps)+1, name="Analysis Execution",
+                step_number=len(result.steps) + 1, name="Analysis Execution",
                 description="Executing spatial analysis", status='failed',
                 reasoning=f"Error: {str(e)}"))
             result.success = False
@@ -3018,9 +2883,8 @@ class StargazeXAgent:
         if progress_callback: progress_callback(1.0, "Complete")
         return result
 
-
 # ============================================================================
-# UI HELPERS
+# SESSION STATE
 # ============================================================================
 
 def init_session_state():
@@ -3048,7 +2912,14 @@ def init_session_state():
     if 'show_fire_overlay' not in st.session_state:
         st.session_state.show_fire_overlay = False
     if 'forecast_data' not in st.session_state:
-        st.session_state.forecast_data = Nonedef render_region_selector():
+        st.session_state.forecast_data = None
+
+
+# ============================================================================
+# UI - Region Selector
+# ============================================================================
+
+def render_region_selector():
     regions = {
         '🌏 All Malaysia': 'all',
         '🏙️ Peninsular Malaysia': 'peninsular',
@@ -3067,7 +2938,7 @@ def init_session_state():
         '📍 Pahang': 'pahang',
         '📍 Terengganu': 'terengganu',
         '📍 Kelantan': 'kelantan',
-        '🌟 All Stargazing Candidates': 'candidates'
+        '🌟 All Stargazing Candidates': 'candidates',
     }
     selected = st.selectbox("Select Region", options=list(regions.keys()), index=0)
     rk = regions[selected]
@@ -3103,6 +2974,10 @@ def init_session_state():
     return locs, rk
 
 
+# ============================================================================
+# UI - Sidebar
+# ============================================================================
+
 def render_sidebar():
     with st.sidebar:
         st.markdown("""
@@ -3110,16 +2985,13 @@ def render_sidebar():
             <div style="font-size: 2.5rem; font-family: 'Courier New', monospace;
                  background: linear-gradient(90deg, #00f0ff, #b026ff, #ff2d95);
                  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-                 font-weight: 900; letter-spacing: 4px;">
-                stargazeX
-            </div>
+                 font-weight: 900; letter-spacing: 4px;">stargazeX</div>
             <div style="color: #00f0ff; font-size: 0.8rem; font-family: 'Courier New', monospace;
-                 letter-spacing: 6px;">
-                MALAYSIA · v4.1.1 SKY CLARITY+
-            </div>
+                 letter-spacing: 6px;">MALAYSIA · v4.1.1</div>
             <div class="cyber-divider"></div>
         </div>
         """, unsafe_allow_html=True)
+
         cache_stats = api_cache.get_stats()
         st.markdown(f"""
         <div style="color: #a0a0c0; font-family: 'Courier New', monospace; font-size: 0.7rem;
@@ -3137,11 +3009,9 @@ def render_sidebar():
                  letter-spacing: 1px;">CURRENT MOON</div>
             <div style="font-size: 1.8rem;">{moon['emoji']}</div>
             <div style="color: #00f0ff; font-family: 'Courier New', monospace; font-size: 0.8rem;">
-                {moon['phase_name']}
-            </div>
+                {moon['phase_name']}</div>
             <div style="color: #8080a0; font-family: 'Courier New', monospace; font-size: 0.65rem;">
-                {moon['illumination_pct']}% illuminated
-            </div>
+                {moon['illumination_pct']}% illuminated</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -3158,12 +3028,9 @@ def render_sidebar():
                  letter-spacing: 1px;">SKY CLARITY SEASON</div>
             <div style="font-size: 1.5rem;">✨</div>
             <div style="color: {risk_color}; font-family: 'Courier New', monospace; font-size: 0.8rem;
-                 font-weight: bold;">
-                {seasonal_risk} Clarity
-            </div>
+                 font-weight: bold;">{seasonal_risk} Clarity</div>
             <div style="color: #8080a0; font-family: 'Courier New', monospace; font-size: 0.6rem;">
-                AQI {seasonal_aqi}
-            </div>
+                AQI {seasonal_aqi}</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -3199,7 +3066,8 @@ def render_sidebar():
         if st.session_state.current_results:
             rd = st.session_state.current_results
             if 'suitability_percentage' in rd:
-                pct = rd['suitability_percentage']; rating = rd['rating']
+                pct = rd['suitability_percentage']
+                rating = rd['rating']
                 color = "#39ff14" if pct >= 80 else "#00f0ff" if pct >= 65 else "#ff2d95" if pct >= 50 else "#ff6600"
                 st.markdown(f"""
                 <div style="text-align: center; padding: 15px; border: 1px solid rgba(0, 240, 255, 0.2);
@@ -3214,14 +3082,17 @@ def render_sidebar():
             st.info("Run an analysis to see site ranking")
 
         if st.button("🔄 COMPARE ALL", use_container_width=True):
-            st.session_state.comparison_mode = True; st.rerun()
+            st.session_state.comparison_mode = True
+            st.rerun()
         if st.button("🧹 CLEAR", use_container_width=True):
             st.session_state.current_results = None
             st.session_state.reasoning_log = []
             st.session_state.candidate_scores = {}
             st.rerun()
         if st.button("🗑️ CLEAR CACHE", use_container_width=True):
-            api_cache.clear(); st.success("Cache cleared!"); st.rerun()
+            api_cache.clear()
+            st.success("Cache cleared!")
+            st.rerun()
 
         st.divider()
         st.markdown('<div style="color:#00f0ff;font-family:Courier New,monospace;letter-spacing:2px;font-size:0.9rem;margin-bottom:10px;">🧠 AGENT MEMORY</div>', unsafe_allow_html=True)
@@ -3239,21 +3110,30 @@ def render_sidebar():
         return {'radius': radius}
 
 
+# ============================================================================
+# UI - Haze Card / Air Quality / Map / Query / Reasoning
+# ============================================================================
+
 def render_haze_alert_card(haze):
-    if not haze or not haze.get('detected'): return
+    if not haze or not haze.get('detected'):
+        return
     severity = haze.get('severity', 'Excellent')
     is_fog = haze.get('is_fog', False)
     fog_type = haze.get('fog_type', None)
     ground_verified = haze.get('ground_verified', False)
+
     if is_fog:
-        color = '#00f0ff'; icon = '🌫️'
+        color = '#00f0ff'
+        icon = '🌫️'
         if fog_type == 'tropical':
             fog_label = '🌴 TROPICAL HIGHLAND FOG'
             fog_desc = 'Warm humid highland cloud — common at Cameron, Genting, Kundasang'
         elif fog_type == 'temperate':
-            fog_label = '🏔️ MOUNTAIN FOG'; fog_desc = 'Cold high-altitude cloud'
+            fog_label = '🏔️ MOUNTAIN FOG'
+            fog_desc = 'Cold high-altitude cloud'
         else:
-            fog_label = '🌫️ NATURAL FOG'; fog_desc = 'High-altitude cloud'
+            fog_label = '🌫️ NATURAL FOG'
+            fog_desc = 'High-altitude cloud'
         html = f'<div class="fog-alert recommendation-container" style="border: 2px solid {color}; background: {color}11; box-shadow: 0 0 30px {color}44;">'
         html += '<div style="display: flex; align-items: center; gap: 15px;">'
         html += f'<div style="font-size: 3rem;">{icon}</div>'
@@ -3262,7 +3142,9 @@ def render_haze_alert_card(haze):
         html += f'<div style="color: #d0d0e8; font-family: \'Courier New\', monospace; font-size: 0.85rem; margin-top: 5px;">{fog_desc}</div>'
         html += f'<div style="color: #a0a0c0; font-family: \'Courier New\', monospace; font-size: 0.75rem; margin-top: 3px;">Confidence: {haze.get("confidence", "Unknown")} · {haze.get("cause", "Unknown")}</div>'
         html += '</div></div></div>'
-        st.markdown(html, unsafe_allow_html=True); return
+        st.markdown(html, unsafe_allow_html=True)
+        return
+
     clarity_colors = {
         'Very Low':  ('#b026ff', '🌫️', 'Heavy atmospheric softness'),
         'Low':       ('#ffe84d', '🌫️', 'Significant atmospheric softness'),
@@ -3290,9 +3172,12 @@ def render_haze_alert_card(haze):
 
 def render_air_quality_crosscheck(result_data):
     aq = result_data.get('air_quality')
-    if not aq: return
-    om_pm25 = aq.get('openmeteo_pm25'); waqi_pm25 = aq.get('waqi_pm25')
-    if om_pm25 is None and waqi_pm25 is None: return
+    if not aq:
+        return
+    om_pm25 = aq.get('openmeteo_pm25')
+    waqi_pm25 = aq.get('waqi_pm25')
+    if om_pm25 is None and waqi_pm25 is None:
+        return
     with st.expander("🔬 Air Quality Cross-Check (Open-Meteo vs Ground Station)", expanded=False):
         st.caption("Open-Meteo uses CAMS model data. WAQI mirrors DOE ground stations. "
                    "System uses the higher (more conservative) PM2.5. Stations >100 km away are rejected.")
@@ -3300,18 +3185,22 @@ def render_air_quality_crosscheck(result_data):
         with cc1:
             st.markdown("**📡 Open-Meteo CAMS**")
             st.metric("PM2.5", f"{om_pm25:.1f} µg/m³" if om_pm25 is not None else "N/A")
-            if aq.get('openmeteo_aqi') is not None: st.metric("US AQI", f"{aq['openmeteo_aqi']}")
+            if aq.get('openmeteo_aqi') is not None:
+                st.metric("US AQI", f"{aq['openmeteo_aqi']}")
         with cc2:
             st.markdown("**🏭 WAQI Ground Station**")
             st.metric("PM2.5", f"{waqi_pm25:.1f} µg/m³" if waqi_pm25 is not None else "N/A")
-            if aq.get('waqi_aqi') is not None: st.metric("US AQI", f"{aq['waqi_aqi']}")
+            if aq.get('waqi_aqi') is not None:
+                st.metric("US AQI", f"{aq['waqi_aqi']}")
             if aq.get('waqi_station'):
                 dist = aq.get('waqi_station_distance_km')
                 st.caption(f"📍 {aq['waqi_station']}" + (f" · {dist:.1f} km away" if dist is not None else ""))
         with cc3:
             st.markdown("**✅ Used (Higher)**")
-            if aq.get('pm2_5') is not None: st.metric("PM2.5", f"{aq['pm2_5']:.1f} µg/m³")
-            if aq.get('us_aqi') is not None: st.metric("US AQI", f"{aq['us_aqi']}")
+            if aq.get('pm2_5') is not None:
+                st.metric("PM2.5", f"{aq['pm2_5']:.1f} µg/m³")
+            if aq.get('us_aqi') is not None:
+                st.metric("US AQI", f"{aq['us_aqi']}")
             st.caption("Conservative value applied to sky clarity detection")
         if om_pm25 is not None and waqi_pm25 is not None:
             diff = waqi_pm25 - om_pm25
@@ -3335,17 +3224,18 @@ def render_map(params):
     try:
         if basemap_choice == "Satellite":
             m = folium.Map(location=center, zoom_start=6,
-                          tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-                          attr='Esri World Imagery')
+                           tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+                           attr='Esri World Imagery')
         else:
             m = folium.Map(location=center, zoom_start=6, tiles="OpenStreetMap")
     except Exception:
         m = folium.Map(location=center, zoom_start=6)
+
     for name, (lat, lon, radius_km, designation, desc) in PROTECTED_DARK_SKY_ZONES.items():
         folium.Circle([lat, lon], radius=radius_km * 1000,
-                     color='#b026ff', fill=True, fillColor='#b026ff',
-                     fillOpacity=0.08, weight=1,
-                     tooltip=f"🏞️ {name} ({designation})").add_to(m)
+                      color='#b026ff', fill=True, fillColor='#b026ff',
+                      fillOpacity=0.08, weight=1,
+                      tooltip=f"🏞️ {name} ({designation})").add_to(m)
 
     if st.session_state.get('show_fire_overlay', False):
         with st.spinner("🛰️ Fetching NASA FIRMS fire hotspots..."):
@@ -3363,10 +3253,8 @@ def render_map(params):
                         color = '#ffe84d'
                     folium.CircleMarker(
                         [f['lat'], f['lon']],
-                        radius=3,
-                        color=color,
-                        fill=True, fillColor=color, fillOpacity=0.7,
-                        weight=1,
+                        radius=3, color=color,
+                        fill=True, fillColor=color, fillOpacity=0.7, weight=1,
                         tooltip=f"🔥 Fire hotspot · Conf: {f.get('confidence','?')} · {f.get('date','')}",
                     ).add_to(fire_layer)
                 except Exception:
@@ -3389,25 +3277,27 @@ def render_map(params):
             elif pct >= 35: marker_color = 'gray'
             else: marker_color = 'darkred'
         folium.Marker(center,
-                     popup=f"<b>🌟 {location_name}</b><br>Lat: {center[0]:.6f}<br>Lon: {center[1]:.6f}",
-                     tooltip="🌟 Stargazing Site",
-                     icon=folium.Icon(color=marker_color, icon='star', prefix='fa')).add_to(m)
+                      popup=f"<b>🌟 {location_name}</b><br>Lat: {center[0]:.6f}<br>Lon: {center[1]:.6f}",
+                      tooltip="🌟 Stargazing Site",
+                      icon=folium.Icon(color=marker_color, icon='star', prefix='fa')).add_to(m)
         if st.session_state.get('show_radius_circle', True):
             folium.Circle(center, radius=params.get('radius', 10000),
-                         color='#b026ff', fill=True, fillColor='#b026ff', fillOpacity=0.1,
-                         weight=2, tooltip=f"Radius: {params.get('radius', 10000)}m").add_to(m)
+                          color='#b026ff', fill=True, fillColor='#b026ff', fillOpacity=0.1,
+                          weight=2, tooltip=f"Radius: {params.get('radius', 10000)}m").add_to(m)
     try: Fullscreen(position='topleft').add_to(m)
     except Exception: pass
     try: MiniMap(toggle_display=True, position='bottomright').add_to(m)
     except Exception: pass
     try: MousePosition(position='bottomleft', prefix='Coords: ').add_to(m)
     except Exception: pass
+
     md = st_folium(m, width=None, height=500, use_container_width=True)
     if md and md.get('last_clicked'):
-        clat = md['last_clicked']['lat']; clon = md['last_clicked']['lng']
-        if st.session_state.selected_location is None or \
-           abs(st.session_state.selected_location.lat - clat) > 0.0001 or \
-           abs(st.session_state.selected_location.lon - clon) > 0.0001:
+        clat = md['last_clicked']['lat']
+        clon = md['last_clicked']['lng']
+        if (st.session_state.selected_location is None or
+                abs(st.session_state.selected_location.lat - clat) > 0.0001 or
+                abs(st.session_state.selected_location.lon - clon) > 0.0001):
             st.session_state.selected_location = Location(lat=clat, lon=clon, name="Malaysia Location")
             st.rerun()
 
@@ -3444,8 +3334,11 @@ def render_query_interface(params):
         st.rerun()
     if analyse_btn and st.session_state.selected_location:
         with st.spinner("🌌 Analysing..."):
-            pb = st.progress(0); stx = st.empty()
-            def upd(p, s): pb.progress(p); stx.text(s)
+            pb = st.progress(0)
+            stx = st.empty()
+            def upd(p, s):
+                pb.progress(p)
+                stx.text(s)
             result = st.session_state.agent.execute_analysis(
                 st.session_state.selected_location,
                 query if query else "Evaluate this site for stargazing",
@@ -3453,9 +3346,11 @@ def render_query_interface(params):
             st.session_state.analysis_history.append(result)
             st.session_state.reasoning_log = result.steps
             st.session_state.current_results = result.final_result
-            pb.empty(); stx.empty()
+            pb.empty()
+            stx.empty()
             if result.success:
-                st.success(f"✅ Analysis complete in {result.total_time:.2f}s"); st.rerun()
+                st.success(f"✅ Analysis complete in {result.total_time:.2f}s")
+                st.rerun()
             else:
                 st.error("❌ Analysis failed. Check reasoning log.")
     elif analyse_btn:
@@ -3465,7 +3360,8 @@ def render_query_interface(params):
 def render_reasoning_log():
     st.subheader("🧠 Agent Reasoning")
     if not st.session_state.reasoning_log:
-        st.info("Run a stargazing analysis to see reasoning."); return
+        st.info("Run a stargazing analysis to see reasoning.")
+        return
     for step in st.session_state.reasoning_log:
         icon = "✅" if step.status == "completed" else "❌" if step.status == "failed" else "⏳"
         with st.expander(f"{icon} Step {step.step_number}: {step.name}", expanded=False):
@@ -3473,9 +3369,8 @@ def render_reasoning_log():
             if step.execution_time > 0:
                 st.write(f"**Execution Time:** {step.execution_time:.3f}s")
 
-
 # ============================================================================
-# EXPORT FUNCTIONALITY
+# EXPORT
 # ============================================================================
 
 def generate_export_csv(rd):
@@ -3527,7 +3422,8 @@ def generate_export_csv(rd):
         if aq.get('waqi_station_distance_km') is not None:
             rows.append(['Air Quality', 'WAQI Station Distance km', aq.get('waqi_station_distance_km')])
         if aq.get('source'): rows.append(['Air Quality', 'Source', aq.get('source')])
-    details = rd.get('details', {}); scores = rd.get('scores', {})
+    details = rd.get('details', {})
+    scores = rd.get('scores', {})
     for k, d in details.items():
         rows.append(['Score', k.replace('_', ' ').title(), f"{scores.get(k, 0):.2f}/5"])
         rows.append(['Score Value', k.replace('_', ' ').title(), str(d.get('value', 'N/A'))])
@@ -3574,7 +3470,8 @@ def generate_export_json(rd):
         },
         'bortle': rd.get('bortle'),
         'protected_zone': rd.get('protected_zone'),
-        'sky_clarity': rd.get('haze'), 'air_quality': rd.get('air_quality'),
+        'sky_clarity': rd.get('haze'),
+        'air_quality': rd.get('air_quality'),
         'scores': {k: round(v, 2) for k, v in rd.get('scores', {}).items()},
         'details': {}, 'weather': rd.get('weather'),
         'moon_phase': rd.get('moon_phase'), 'milky_way': rd.get('milky_way'),
@@ -3597,12 +3494,12 @@ def render_export_section(rd):
     col1, col2 = st.columns(2)
     with col1:
         st.download_button("📥 Download CSV Report", data=generate_export_csv(rd),
-                          file_name=f"stargazex_{safe_name}_{ts}.csv", mime="text/csv",
-                          use_container_width=True)
+                           file_name=f"stargazex_{safe_name}_{ts}.csv", mime="text/csv",
+                           use_container_width=True)
     with col2:
         st.download_button("📥 Download JSON Report", data=generate_export_json(rd),
-                          file_name=f"stargazex_{safe_name}_{ts}.json", mime="application/json",
-                          use_container_width=True)
+                           file_name=f"stargazex_{safe_name}_{ts}.json", mime="application/json",
+                           use_container_width=True)
 
 
 # ============================================================================
@@ -3612,13 +3509,17 @@ def render_export_section(rd):
 def render_results():
     st.subheader("🌟 StargazeX Analysis Results")
     if not st.session_state.analysis_history:
-        st.info("No analysis results yet. Run a stargazing analysis."); return
+        st.info("No analysis results yet. Run a stargazing analysis.")
+        return
     lr = st.session_state.analysis_history[-1]
     if not lr.final_result:
-        st.warning("No results available."); return
+        st.warning("No results available.")
+        return
     rd = lr.final_result
     if not rd.get('success', False):
-        st.error(f"Analysis failed: {rd.get('error', 'Unknown error')}"); return
+        st.error(f"Analysis failed: {rd.get('error', 'Unknown error')}")
+        return
+
     if 'suitability_percentage' in rd:
         if rd.get('protected_zone'):
             pz = rd['protected_zone']
@@ -3627,14 +3528,17 @@ def render_results():
             else:
                 st.info(f"🏞️ **Near Protected Zone:** {pz['name']} (~{pz.get('distance_km', 0):.1f} km away)")
         haze = rd.get('haze', {})
-        if haze.get('detected'): render_haze_alert_card(haze)
+        if haze.get('detected'):
+            render_haze_alert_card(haze)
         if rd.get('used_osm', False):
             st.success("🌐 **HYBRID stargazeX v4.1.1: WAQI + Peak Elevation + Tropical Fog + Sky Clarity + Bortle + Forecast + NASA FIRMS (SECURE)**")
         else:
             st.success("📍 **Geographic Rules stargazeX v4.1.1 Sky Clarity+ (INSTANT)**")
+
         if haze.get('detected') or haze.get('aqi'):
             st.write("---")
-            is_fog = haze.get('is_fog', False); fog_type = haze.get('fog_type', None)
+            is_fog = haze.get('is_fog', False)
+            fog_type = haze.get('fog_type', None)
             if is_fog:
                 st.write("**🌴 Tropical Highland Fog Analysis**" if fog_type == 'tropical' else "**🏔️ Mountain Fog Analysis**")
             else:
@@ -3642,54 +3546,79 @@ def render_results():
             hz1, hz2, hz3 = st.columns([1.2, 1, 1])
             with hz1:
                 sev = haze.get('severity', 'Excellent')
-                if is_fog: sev_colors = {'Fog': '#00f0ff'}; label_prefix = "FOG"; type_label = fog_type.upper() if fog_type else "NATURAL"; card_icon = '🌫️'
+                if is_fog:
+                    sev_colors = {'Fog': '#00f0ff'}
+                    label_prefix = "FOG"
+                    type_label = fog_type.upper() if fog_type else "NATURAL"
+                    card_icon = '🌫️'
                 else:
                     sev_colors = {'Very Low': '#b026ff', 'Low': '#ffe84d', 'Fair': '#00f0ff',
                                   'Good': '#39ff14', 'Excellent': '#39ff14'}
-                    label_prefix = "SKY CLARITY"; type_label = ""
+                    label_prefix = "SKY CLARITY"
+                    type_label = ""
                     card_icon = {'Very Low': '🌫️', 'Low': '🌫️', 'Fair': '🌤️',
                                  'Good': '✨', 'Excellent': '🌟'}.get(sev, 'ℹ️')
                 sev_color = sev_colors.get(sev, '#8080a0')
                 card = f'<div style="text-align: center; padding: 15px; border: 1px solid {sev_color}66; border-radius: 10px; background: {sev_color}11;">'
                 card += f'<div style="font-size: 2rem;">{card_icon}</div>'
                 card += f'<div style="color: {sev_color}; font-family: \'Courier New\', monospace; font-size: 0.9rem; font-weight: bold;">{label_prefix}: {sev.upper()}</div>'
-                if type_label: card += f'<div style="color: #a0a0c0; font-size: 0.65rem;">{type_label}</div>'
-                if haze.get('ground_verified'): card += '<div style="color: #39ff14; font-size: 0.6rem;">✅ GROUND-VERIFIED</div>'
+                if type_label:
+                    card += f'<div style="color: #a0a0c0; font-size: 0.65rem;">{type_label}</div>'
+                if haze.get('ground_verified'):
+                    card += '<div style="color: #39ff14; font-size: 0.6rem;">✅ GROUND-VERIFIED</div>'
                 card += f'<div style="color: #8080a0; font-size: 0.65rem; margin-top: 5px;">Confidence: {haze.get("confidence", "N/A")}</div></div>'
                 st.markdown(card, unsafe_allow_html=True)
             with hz2:
-                if haze.get('pm25') is not None: st.metric("PM2.5", f"{haze['pm25']:.1f} µg/m³")
-                if haze.get('aqi') is not None: st.metric("AQI", f"{haze['aqi']}")
+                if haze.get('pm25') is not None:
+                    st.metric("PM2.5", f"{haze['pm25']:.1f} µg/m³")
+                if haze.get('aqi') is not None:
+                    st.metric("AQI", f"{haze['aqi']}")
             with hz3:
-                if haze.get('pm10') is not None: st.metric("PM10", f"{haze['pm10']:.1f} µg/m³")
+                if haze.get('pm10') is not None:
+                    st.metric("PM10", f"{haze['pm10']:.1f} µg/m³")
                 st.metric("Month Clarity", haze.get('seasonal_risk', 'N/A'))
             if haze.get('health_advisory'):
-                if is_fog: st.success(haze['health_advisory'])
-                else: st.info(haze['health_advisory'])
+                if is_fog:
+                    st.success(haze['health_advisory'])
+                else:
+                    st.info(haze['health_advisory'])
             if haze.get('action_recommendation'):
                 sev = haze.get('severity', 'Excellent')
-                if is_fog: st.info(haze['action_recommendation'])
-                elif sev in ['Low', 'Very Low']: st.warning(haze['action_recommendation'])
-                elif sev == 'Fair': st.info(haze['action_recommendation'])
-                else: st.success(haze['action_recommendation'])
+                if is_fog:
+                    st.info(haze['action_recommendation'])
+                elif sev in ['Low', 'Very Low']:
+                    st.warning(haze['action_recommendation'])
+                elif sev == 'Fair':
+                    st.info(haze['action_recommendation'])
+                else:
+                    st.success(haze['action_recommendation'])
             render_air_quality_crosscheck(rd)
             if haze.get('indicators'):
                 with st.expander("🔍 Detection Indicators"):
-                    for ind in haze['indicators']: st.write(f"• {ind}")
+                    for ind in haze['indicators']:
+                        st.write(f"• {ind}")
+
         moon = rd.get('moon_phase')
         if moon:
-            st.write("---"); st.write("**🌙 Current Moon Phase**")
+            st.write("---")
+            st.write("**🌙 Current Moon Phase**")
             m1, m2, m3 = st.columns([1, 2, 2])
             with m1:
                 st.markdown(f"""<div style="text-align: center; padding: 15px; border: 1px solid rgba(255, 232, 77, 0.3); border-radius: 10px; background: rgba(255, 232, 77, 0.05);">
                 <div style="font-size: 3rem;">{moon['emoji']}</div>
                 <div style="color: #ffe84d; font-family: 'Courier New', monospace; font-size: 0.9rem; font-weight: bold;">{moon['phase_name']}</div></div>""",
-                unsafe_allow_html=True)
-            with m2: st.metric("Illumination", f"{moon['illumination_pct']}%"); st.metric("Moon Age", f"{moon['age_days']} days")
-            with m3: st.metric("Viewing Impact", moon['impact_emoji']); st.caption(f"**{moon['impact']}**")
+                            unsafe_allow_html=True)
+            with m2:
+                st.metric("Illumination", f"{moon['illumination_pct']}%")
+                st.metric("Moon Age", f"{moon['age_days']} days")
+            with m3:
+                st.metric("Viewing Impact", moon['impact_emoji'])
+                st.caption(f"**{moon['impact']}**")
+
         mw = rd.get('milky_way')
         if mw:
-            st.write("---"); st.write("**🌌 Milky Way Visibility**")
+            st.write("---")
+            st.write("**🌌 Milky Way Visibility**")
             mw1, mw2, mw3 = st.columns([1, 2, 2])
             vc = {'Peak': '#39ff14', 'Excellent': '#00f0ff', 'Good': '#ffe84d',
                   'Limited': '#ff6600', 'Poor': '#ff2d95'}.get(mw['visibility'], '#8080a0')
@@ -3697,12 +3626,18 @@ def render_results():
                 st.markdown(f"""<div style="text-align: center; padding: 15px; border: 1px solid {vc}66; border-radius: 10px; background: {vc}11;">
                 <div style="font-size: 2rem;">🌌</div>
                 <div style="color: {vc}; font-family: 'Courier New', monospace; font-size: 0.9rem; font-weight: bold;">{mw['visibility']}</div></div>""",
-                unsafe_allow_html=True)
-            with mw2: st.metric("Best Viewing Time", mw['best_time']); st.metric("Latitude Position", mw['latitude_note'].split(' - ')[0])
-            with mw3: st.info(f"📝 {mw['note']}"); st.caption(f"**Next window:** {mw['next_window']}")
+                            unsafe_allow_html=True)
+            with mw2:
+                st.metric("Best Viewing Time", mw['best_time'])
+                st.metric("Latitude Position", mw['latitude_note'].split(' - ')[0])
+            with mw3:
+                st.info(f"📝 {mw['note']}")
+                st.caption(f"**Next window:** {mw['next_window']}")
+
         astro = rd.get('astrophotography_scores')
         if astro:
-            st.write("---"); st.write("**📸 Activity-Specific Scores**")
+            st.write("---")
+            st.write("**📸 Activity-Specific Scores**")
             st.caption("Different activities have different requirements.")
             ac1, ac2, ac3 = st.columns(3)
             for col, key, icon, color in [(ac1, 'naked_eye', '👁️', '#00f0ff'),
@@ -3716,15 +3651,18 @@ def render_results():
                     <div style="font-size: 1.8rem; font-weight: 900; color: #ffffff; font-family: 'Courier New', monospace;">{d['score']}%</div>
                     <div style="color: #ffe84d; font-family: 'Courier New', monospace; font-size: 0.8rem;">{d['emoji']} {d['rating']}</div>
                     <div style="color: #8080a0; font-size: 0.65rem; margin-top: 5px;">{d['note']}</div></div>""",
-                    unsafe_allow_html=True)
+                                unsafe_allow_html=True)
+
         st.write("---")
         if rd.get('penalty_applied', 0) > 0:
             with st.expander(f"⚠️ Score Penalty: -{rd['penalty_applied']}%"):
                 st.write(f"**Base score:** {rd.get('base_percentage', 0)}%")
                 st.write(f"**Penalty:** -{rd['penalty_applied']}%")
                 st.write("**Reasons:**")
-                for r in rd.get('penalty_reasons', []): st.warning(r)
+                for r in rd.get('penalty_reasons', []):
+                    st.warning(r)
                 st.write(f"**Final score:** {rd['suitability_percentage']}%")
+
         if 'data_source_details' in rd:
             with st.expander("📊 Data Sources Used"):
                 for detail in rd['data_source_details']:
@@ -3739,28 +3677,39 @@ def render_results():
                     elif 'Elevation' in detail: st.info(f"⛰️ {detail}")
                     elif 'Curated' in detail or 'Peak' in detail: st.success(f"✅ {detail}")
                     else: st.info(f"📍 {detail}")
+
         weather = rd.get('weather')
         if weather:
             with st.expander("🌤️ Live Weather (Open-Meteo)", expanded=False):
                 wc1, wc2, wc3 = st.columns(3)
                 with wc1:
                     if weather.get('cloud_cover_pct') is not None:
-                        st.metric("☁️ Cloud Cover", f"{weather['cloud_cover_pct']:.0f}%", delta=weather.get('cloud_rating', ''))
-                    if weather.get('temperature_c') is not None: st.metric("🌡️ Temperature", f"{weather['temperature_c']:.1f}°C")
+                        st.metric("☁️ Cloud Cover", f"{weather['cloud_cover_pct']:.0f}%",
+                                  delta=weather.get('cloud_rating', ''))
+                    if weather.get('temperature_c') is not None:
+                        st.metric("🌡️ Temperature", f"{weather['temperature_c']:.1f}°C")
                 with wc2:
-                    if weather.get('humidity_pct') is not None: st.metric("💧 Humidity", f"{weather['humidity_pct']:.0f}%")
-                    if weather.get('visibility_km') is not None: st.metric("👁️ Visibility", f"{weather['visibility_km']:.0f} km")
+                    if weather.get('humidity_pct') is not None:
+                        st.metric("💧 Humidity", f"{weather['humidity_pct']:.0f}%")
+                    if weather.get('visibility_km') is not None:
+                        st.metric("👁️ Visibility", f"{weather['visibility_km']:.0f} km")
                 with wc3:
-                    if weather.get('dew_point_c') is not None: st.metric("💦 Dew Point", f"{weather['dew_point_c']:.1f}°C")
-                    if weather.get('wind_speed_ms') is not None: st.metric("💨 Wind", f"{weather['wind_speed_ms']:.1f} m/s")
-                if weather.get('cloud_explanation'): st.caption(f"**Assessment:** {weather['cloud_explanation']}")
+                    if weather.get('dew_point_c') is not None:
+                        st.metric("💦 Dew Point", f"{weather['dew_point_c']:.1f}°C")
+                    if weather.get('wind_speed_ms') is not None:
+                        st.metric("💨 Wind", f"{weather['wind_speed_ms']:.1f} m/s")
+                if weather.get('cloud_explanation'):
+                    st.caption(f"**Assessment:** {weather['cloud_explanation']}")
+
         c1, c2, c3, c4, c5 = st.columns([2, 1, 1, 1, 1])
         with c1:
             st.metric("🌟 Stargazing Suitability", f"{rd['suitability_percentage']}%",
                       delta=f"{rd['rating']} {rd['rating_emoji']}")
             st.caption(rd['recommendation'])
-        with c2: st.metric("Elevation", f"{rd.get('elevation_m', 0):.0f}m")
-        with c3: st.metric("Latitude", f"{rd.get('lat_deg', 0):.1f}°N")
+        with c2:
+            st.metric("Elevation", f"{rd.get('elevation_m', 0):.0f}m")
+        with c3:
+            st.metric("Latitude", f"{rd.get('lat_deg', 0):.1f}°N")
         with c4:
             cc = rd.get('cloud_cover_pct')
             st.metric("☁️ Cloud", f"{cc:.0f}%" if cc is not None else "N/A")
@@ -3915,9 +3864,11 @@ def render_results():
                 st.info("🛰️ NASA FIRMS data unavailable right now — try again later.")
 
         with st.expander("🔍 Why This Score? (Top Contributing Factors)", expanded=False):
-            details = rd.get('details', {}); scores = rd.get('scores', {})
+            details = rd.get('details', {})
+            scores = rd.get('scores', {})
             contribs = [{'factor': k.replace('_', ' ').title(), 'score': scores.get(k, 0),
-                         'weight': d.get('weight', 0), 'weighted': scores.get(k, 0) * d.get('weight', 0)}
+                         'weight': d.get('weight', 0),
+                         'weighted': scores.get(k, 0) * d.get('weight', 0)}
                         for k, d in details.items()]
             contribs.sort(key=lambda x: x['weighted'], reverse=True)
             st.write("**Top positive contributors:**")
@@ -3928,11 +3879,15 @@ def render_results():
             for c in contribs[-3:]:
                 bar = "█" * int(c['weighted'] * 20)
                 st.write(f"⚠️ **{c['factor']}** — Score: {c['score']:.1f}/5, Weight: {c['weight']*100:.0f}% — `{bar}` {c['weighted']:.2f}")
-        st.write("---"); st.write("**Detailed Scoring Breakdown:**")
-        details = rd.get('details', {}); scores = rd.get('scores', {})
+
+        st.write("---")
+        st.write("**Detailed Scoring Breakdown:**")
+        details = rd.get('details', {})
+        scores = rd.get('scores', {})
         score_data = []
         for k, d in details.items():
-            w = d.get('weight', 0); sc = scores.get(k, 0)
+            w = d.get('weight', 0)
+            sc = scores.get(k, 0)
             src = d.get('source', 'Unknown')
             emoji = ('🏞️' if 'Protected' in src or '🏞️' in str(src) else
                      '✅' if 'Curated' in src or 'Peak' in src else
@@ -3944,9 +3899,12 @@ def render_results():
                                'Value': d.get('value', 'N/A'), 'Weight': f"{w*100:.0f}%",
                                'Weighted': f"{sc*w:.2f}", 'Source': f"{emoji} {src[:40]}"})
         st.dataframe(pd.DataFrame(score_data), use_container_width=True, hide_index=True)
-        chart_data = pd.DataFrame([{'Criteria': r['Criteria'], 'Score': float(r['Score'].split('/')[0])} for r in score_data])
+        chart_data = pd.DataFrame([{'Criteria': r['Criteria'],
+                                     'Score': float(r['Score'].split('/')[0])} for r in score_data])
         st.bar_chart(chart_data.set_index('Criteria'))
-        st.write("---"); st.write("**📅 Best Viewing Season**")
+
+        st.write("---")
+        st.write("**📅 Best Viewing Season**")
         seasonal = get_seasonal_guidance(rd.get('lat', 0), rd.get('lon', 0), rd.get('elevation_m', 0))
         st.info(f"""**Region:** {seasonal['region']}
 
@@ -3957,7 +3915,9 @@ def render_results():
 ⚠️ **Avoid:** {seasonal['avoid_months']}
 
 📝 *{seasonal['notes']}*""")
-        st.write("---"); st.write("**✨ Malaysia Sky Clarity Season Calendar**")
+
+        st.write("---")
+        st.write("**✨ Malaysia Sky Clarity Season Calendar**")
         current_m = datetime.now().month
         month_data = [{'Month': datetime(2024, m, 1).strftime('%b'),
                        'Sky Clarity': HAZE_SEASONAL_CALENDAR[m][0],
@@ -3967,10 +3927,13 @@ def render_results():
         st.dataframe(pd.DataFrame(month_data), use_container_width=True, hide_index=True)
         cs = HAZE_SEASONAL_CALENDAR[current_m]
         st.caption(f"**Current month ({datetime(2024, current_m, 1).strftime('%B')}):** {cs[0]} sky clarity — {cs[3]}")
-        st.write("---"); st.write("**📋 Detailed Recommendation Strategy**")
+
+        st.write("---")
+        st.write("**📋 Detailed Recommendation Strategy**")
         recs = generate_recommendation_strategy(rd)
         risk = recs.get('risk_level', 'Unknown')
-        risk_color = ('#ff2d95' if risk in ('High', 'Very High') else '#39ff14' if risk == 'Low' else '#ffe84d')
+        risk_color = ('#ff2d95' if risk in ('High', 'Very High') else
+                      '#39ff14' if risk == 'Low' else '#ffe84d')
         st.markdown(f"""
         <div class="recommendation-container">
             <div class="recommendation-title">🎯 Overall Feasibility</div>
@@ -4000,20 +3963,26 @@ def render_results():
                     <span class="icon">{a.get('priority', '')}</span>
                     {a['text']}
                     <span style="float: right; color: #8080a0; font-size: 0.8rem;">{a.get('cost', '')}</span></div>""",
-                    unsafe_allow_html=True)
+                                unsafe_allow_html=True)
                 st.markdown("</div>", unsafe_allow_html=True)
         render_export_section(rd)
 
+
+# ============================================================================
+# COMPARISON MODE
+# ============================================================================
 
 def render_comparison_mode():
     st.subheader("🔄 Site Comparison Dashboard")
     col1, col2 = st.columns([4, 1])
     with col2:
         if st.button("⬅️ BACK", key="back_cmp", use_container_width=True):
-            st.session_state.comparison_mode = False; st.rerun()
+            st.session_state.comparison_mode = False
+            st.rerun()
     with st.spinner("Analysing all candidate sites..."):
         results = []
-        pb = st.progress(0); stx = st.empty()
+        pb = st.progress(0)
+        stx = st.empty()
         for i, (name, coords) in enumerate(STARGAZING_CANDIDATES.items()):
             stx.text(f"Analysing: {name}")
             pb.progress((i + 1) / len(STARGAZING_CANDIDATES))
@@ -4024,7 +3993,8 @@ def render_comparison_mode():
                 if r.get('success'):
                     moon = calculate_moon_phase()
                     astro = calculate_astrophotography_scores(r, moon)
-                    haze = r.get('haze', {}); is_fog = haze.get('is_fog', False)
+                    haze = r.get('haze', {})
+                    is_fog = haze.get('is_fog', False)
                     fog_type = haze.get('fog_type', None)
                     if is_fog:
                         haze_label = '🌴 Tropical Fog' if fog_type == 'tropical' else '🏔️ Fog'
@@ -4046,7 +4016,8 @@ def render_comparison_mode():
                                 'Rating': 'Error', 'Elevation (m)': 0, 'Light Pollution': 0,
                                 'Bortle': 'N/A', 'Cloud Risk': 'Unknown', 'Sky Clarity': 'N/A',
                                 'AstroPhoto %': 0, 'Protected': ''})
-        pb.empty(); stx.empty()
+        pb.empty()
+        stx.empty()
         if results:
             df = pd.DataFrame(results)
             df_sorted = df.sort_values('Suitability %', ascending=False)
@@ -4062,11 +4033,12 @@ def render_comparison_mode():
             region_avg = df.groupby('Region')['Suitability %'].agg(['mean', 'count']).round(1)
             region_avg.columns = ['Avg Suitability %', 'Sites']
             st.dataframe(region_avg, use_container_width=True)
+
             basemap = st.session_state.get('basemap_choice', 'OpenStreetMap')
             if basemap == "Satellite":
                 m = folium.Map(location=[4.5, 108.0], zoom_start=6,
-                              tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-                              attr='Esri World Imagery')
+                               tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+                               attr='Esri World Imagery')
             else:
                 m = folium.Map(location=[4.5, 108.0], zoom_start=6, tiles="OpenStreetMap")
             for _, row in df.iterrows():
@@ -4078,13 +4050,15 @@ def render_comparison_mode():
                               popup=f"<b>{row['Site']}</b><br>Region: {row['Region']}<br>Score: {score:.1f}%<br>Rating: {row['Rating']}<br>Bortle: {row.get('Bortle','?')}",
                               tooltip=f"{row['Site']}: {score:.1f}%",
                               icon=folium.Icon(color=color, icon='star', prefix='fa')).add_to(m)
-            try: Fullscreen(position='topleft').add_to(m)
-            except Exception: pass
+            try:
+                Fullscreen(position='topleft').add_to(m)
+            except Exception:
+                pass
             st_folium(m, width=None, height=400, use_container_width=True)
             ts = datetime.now().strftime('%Y%m%d_%H%M')
             st.download_button("📥 Download Comparison CSV", data=df_sorted[cols].to_csv(index=False),
-                              file_name=f"stargazex_comparison_{ts}.csv", mime="text/csv",
-                              use_container_width=True)
+                               file_name=f"stargazex_comparison_{ts}.csv", mime="text/csv",
+                               use_container_width=True)
             sel = st.selectbox("Select a site for detailed analysis:", df_sorted['Site'].tolist())
             if sel:
                 coords = STARGAZING_CANDIDATES[sel]
@@ -4139,7 +4113,8 @@ def render_memory_explorer():
             conn = sqlite3.connect("stargazex_memory.db")
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM learned_parameters ORDER BY success_rate DESC")
-            rows = cursor.fetchall(); conn.close()
+            rows = cursor.fetchall()
+            conn.close()
             if rows:
                 df = pd.DataFrame(rows, columns=['ID', 'Analysis Type', 'Parameter', 'Value',
                                                  'Success Rate', 'Usage Count', 'Last Updated'])
@@ -4180,25 +4155,21 @@ def main():
          border: 1px solid rgba(0, 240, 255, 0.1); border-radius: 8px;
          background: rgba(0, 240, 255, 0.03); margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
         <span style="color: #8080a0; font-family: 'Courier New', monospace; font-size: 0.7rem;">
-            📍 TOTAL: <span style="color: #00f0ff; font-weight: bold;">{total_all}</span>
-        </span>
+            📍 TOTAL: <span style="color: #00f0ff; font-weight: bold;">{total_all}</span></span>
         <span style="color: #8080a0; font-family: 'Courier New', monospace; font-size: 0.7rem;">
-            🏙️ PENINSULAR: <span style="color: #b026ff; font-weight: bold;">{total_west}</span>
-        </span>
+            🏙️ PENINSULAR: <span style="color: #b026ff; font-weight: bold;">{total_west}</span></span>
         <span style="color: #8080a0; font-family: 'Courier New', monospace; font-size: 0.7rem;">
-            🏝️ BORNEO: <span style="color: #ff2d95; font-weight: bold;">{total_borneo}</span>
-        </span>
+            🏝️ BORNEO: <span style="color: #ff2d95; font-weight: bold;">{total_borneo}</span></span>
         <span style="color: #8080a0; font-family: 'Courier New', monospace; font-size: 0.7rem;">
-            🌟 CANDIDATES: <span style="color: #39ff14; font-weight: bold;">{total_candidates}</span>
-        </span>
+            🌟 CANDIDATES: <span style="color: #39ff14; font-weight: bold;">{total_candidates}</span></span>
         <span style="color: #8080a0; font-family: 'Courier New', monospace; font-size: 0.7rem;">
-            🏞️ PROTECTED: <span style="color: #ffe84d; font-weight: bold;">{total_zones}</span>
-        </span>
+            🏞️ PROTECTED: <span style="color: #ffe84d; font-weight: bold;">{total_zones}</span></span>
     </div>
     """, unsafe_allow_html=True)
 
     if st.session_state.get('comparison_mode', False):
-        render_comparison_mode(); return
+        render_comparison_mode()
+        return
 
     params = render_sidebar()
     col1, col2 = st.columns([1.5, 1])
@@ -4223,12 +4194,16 @@ def main():
         render_reasoning_log()
     st.divider()
     col1, col2 = st.columns(2)
-    with col1: render_results()
-    with col2: render_memory_explorer()
+    with col1:
+        render_results()
+    with col2:
+        render_memory_explorer()
     st.markdown("""
     <div class="cyber-divider"></div>
     <div style="text-align: center; padding: 15px 0;">
-        <a href="https://buymeacoffee.com/stargazex" target="_blank"> <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" > </a>
+        <a href="https://buymeacoffee.com/stargazex" target="_blank">
+            <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" >
+        </a>
     </div>
     <div style="text-align: center; padding: 15px 0; color: #333; font-family: 'Courier New', monospace;
          font-size: 0.6rem; letter-spacing: 2px;">
