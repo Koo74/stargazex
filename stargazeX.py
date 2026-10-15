@@ -11,7 +11,7 @@ MALAYSIA-WIDE COVERAGE:
 - 34 protected dark-sky zones
 
 V4.1.1 SECURE NASA KEY (NEW):
-- NASA FIRMS API key read from Streamlit secrets (never in source code)
+- NASA FIRMS 
 - Fallback chain: st.secrets -> env var -> demo endpoint
 - Graceful degradation - app never crashes if key missing
 
