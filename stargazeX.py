@@ -1,8 +1,8 @@
 """
 Advanced GeoAI Agent - StarView Malaysia (stargazeX)
 ====================================================
-CYBERPUNK EDITION v4.1.1: UNIFIED MALAYSIA STARGAZING SELECTOR
-SKY CLARITY + SATELLITE + FORECAST + BORTLE EDITION (SECURE NASA KEY)
+CYBERPUNK EDITION v4.1.2: UNIFIED MALAYSIA STARGAZING SELECTOR
+SKY CLARITY + SATELLITE + FORECAST + BORTLE + WAQI EDITION (SECURE KEYS)
 
 MALAYSIA-WIDE COVERAGE:
 - Peninsular Malaysia (500+ locations)
@@ -10,10 +10,15 @@ MALAYSIA-WIDE COVERAGE:
 - 60+ curated stargazing candidates nationwide
 - 34 protected dark-sky zones
 
-V4.1.1 SECURE NASA KEY (NEW):
-- NASA FIRMS 
+V4.1.2 SECURE WAQI KEY (NEW):
+- WAQI 
 - Fallback chain: st.secrets -> env var -> demo endpoint
-- Graceful degradation - app never crashes if key missing
+- Graceful degradation - app never crashes if token missing
+- Ground station cross-check now works reliably
+
+V4.1.1 SECURE NASA KEY (preserved):
+- NASA FIRMS 
+- Fallback chain: st.secrets -> env var -> demo
 
 V4.1.0 FEATURES (preserved):
 - Bortle Scale Rating (1-9)
@@ -1161,9 +1166,29 @@ def get_air_quality(location: Dict) -> Optional[Dict]:
         return None
 
 
-def get_waqi_air_quality(location: Dict) -> Optional[Dict]:
+# ============================================================
+# WAQI (SECURE - token from Streamlit secrets) — v4.1.2
+# ============================================================
+
+def _get_waqi_token() -> str:
+    """Retrieve WAQI API token from Streamlit secrets, env var, or demo fallback."""
+    token = ""
     try:
-        url = f"https://api.waqi.info/feed/geo:{location['lat']};{location['lon']}/?token=demo"
+        token = st.secrets.get("WAQI_TOKEN", "")
+    except Exception:
+        token = ""
+    if not token:
+        token = os.environ.get("WAQI_TOKEN", "")
+    if not token:
+        token = "demo"
+    return token
+
+
+def get_waqi_air_quality(location: Dict) -> Optional[Dict]:
+    """Fetch WAQI ground station data. Token sourced securely from st.secrets."""
+    try:
+        waqi_token = _get_waqi_token()
+        url = f"https://api.waqi.info/feed/geo:{location['lat']};{location['lon']}/?token={waqi_token}"
         r = requests.get(url, timeout=4)
         data = r.json()
         if data.get('status') != 'ok':
@@ -2267,7 +2292,7 @@ class AnalysisStrategy(ABC):
 
 class StargazingSuitabilityStrategy(AnalysisStrategy):
     def get_name(self) -> str:
-        return "stargazeX Suitability Analysis v4.1.1 (Malaysia · Sky Clarity+)"
+        return "stargazeX Suitability Analysis v4.1.2 (Malaysia · Sky Clarity+)"
 
     def _haversine(self, lat1, lon1, lat2, lon2):
         R = 6371
@@ -2701,7 +2726,7 @@ class StargazingSuitabilityStrategy(AnalysisStrategy):
             'wind_direction_deg': weather_data.get('wind_direction_deg') if weather_data else None,
             'haze': haze_data, 'air_quality': air_quality_data,
             'used_fallback': True, 'from_cache': False,
-            'analysis_method': 'HYBRID v4.1.1 Malaysia: stargazeX Sky Clarity+ (SECURE NASA FIRMS)',
+            'analysis_method': 'HYBRID v4.1.2 Malaysia: stargazeX Sky Clarity+ (SECURE NASA + WAQI)',
         }
 
 
@@ -2720,7 +2745,7 @@ class ProximityAnalysisStrategy(AnalysisStrategy):
         try:
             r = requests.post("https://overpass-api.de/api/interpreter",
                               data={'data': q},
-                              headers={'User-Agent': 'stargazeX/4.1.1'}, timeout=45)
+                              headers={'User-Agent': 'stargazeX/4.1.2'}, timeout=45)
             r.raise_for_status()
             results, seen = [], set()
             for elem in r.json().get('elements', []):
@@ -2793,7 +2818,7 @@ class StargazeXAgent:
                           'action': 'apply_learned_parameters'})
         analysis_type = 'stargazing'
         steps.append({'step': 'Strategy Selection',
-                      'reasoning': 'Using stargazeX Unified strategy v4.1.1 Sky Clarity+.',
+                      'reasoning': 'Using stargazeX Unified strategy v4.1.2 Sky Clarity+.',
                       'action': 'use_stargazing_strategy'})
         lr = self.memory_repo.get_learned_parameter(analysis_type, 'radius')
         if lr:
@@ -2837,7 +2862,7 @@ class StargazeXAgent:
                 protected = ar.get('protected_zone')
                 haze = ar.get('haze', {})
                 bortle = ar.get('bortle', {})
-                method_note = ar.get('analysis_method', 'HYBRID v4.1.1 Sky Clarity+')
+                method_note = ar.get('analysis_method', 'HYBRID v4.1.2 Sky Clarity+')
                 if protected:
                     tag = 'INSIDE' if protected.get('is_inside') else 'NEAR'
                     method_note += f" | {tag} Protected: {protected['name']}"
@@ -2987,7 +3012,7 @@ def render_sidebar():
                  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
                  font-weight: 900; letter-spacing: 4px;">stargazeX</div>
             <div style="color: #00f0ff; font-size: 0.8rem; font-family: 'Courier New', monospace;
-                 letter-spacing: 6px;">MALAYSIA · v4.1.1</div>
+                 letter-spacing: 6px;">MALAYSIA · v4.1.2</div>
             <div class="cyber-divider"></div>
         </div>
         """, unsafe_allow_html=True)
@@ -3457,7 +3482,7 @@ def generate_export_csv(rd):
 def generate_export_json(rd):
     export = {
         'export_timestamp': datetime.now().isoformat(),
-        'version': 'stargazeX v4.1.1 Malaysia Sky Clarity+ (Secure NASA Key)',
+        'version': 'stargazeX v4.1.2 Malaysia Sky Clarity+ (Secure NASA + WAQI Keys)',
         'location': {'name': rd.get('location_name', 'Unknown'),
                      'latitude': rd.get('lat', 0), 'longitude': rd.get('lon', 0)},
         'overall': {
@@ -3531,9 +3556,9 @@ def render_results():
         if haze.get('detected'):
             render_haze_alert_card(haze)
         if rd.get('used_osm', False):
-            st.success("🌐 **HYBRID stargazeX v4.1.1: WAQI + Peak Elevation + Tropical Fog + Sky Clarity + Bortle + Forecast + NASA FIRMS (SECURE)**")
+            st.success("🌐 **HYBRID stargazeX v4.1.2: WAQI + Peak Elevation + Tropical Fog + Sky Clarity + Bortle + Forecast + NASA FIRMS (SECURE)**")
         else:
-            st.success("📍 **Geographic Rules stargazeX v4.1.1 Sky Clarity+ (INSTANT)**")
+            st.success("📍 **Geographic Rules stargazeX v4.1.2 Sky Clarity+ (INSTANT)**")
 
         if haze.get('detected') or haze.get('aqi'):
             st.write("---")
@@ -4136,11 +4161,11 @@ def main():
     st.markdown("""
     <div style="text-align: center; padding: 20px 0 10px 0;">
         <div class="main-title">🌌 stargazeX</div>
-        <div class="subtitle">MALAYSIA · UNIFIED STARGAZING SITE SELECTOR v4.1.1</div>
+        <div class="subtitle">MALAYSIA · UNIFIED STARGAZING SITE SELECTOR v4.1.2</div>
         <div class="cyber-divider"></div>
         <div style="color: #8080a0; font-family: 'Courier New', monospace; font-size: 0.7rem;
              letter-spacing: 4px; margin-top: 5px;">
-            🌌 PENINSULAR · SABAH · SARAWAK · ✨ SKY CLARITY · 🎯 BORTLE · 📅 7-DAY FORECAST · 🛰️ NASA FIRMS 🔐
+            🌌 PENINSULAR · SABAH · SARAWAK · ✨ SKY CLARITY · 🎯 BORTLE · 📅 7-DAY FORECAST · 🛰️ NASA FIRMS + WAQI 🔐
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -4208,7 +4233,7 @@ def main():
     <div style="text-align: center; padding: 15px 0; color: #333; font-family: 'Courier New', monospace;
          font-size: 0.6rem; letter-spacing: 2px;">
         <span style="color: #00f0ff;">[</span>
-        stargazeX v4.1.1 · MALAYSIA UNIFIED · SKY CLARITY+ · BORTLE + 7-DAY FORECAST + NASA FIRMS 🔐
+        stargazeX v4.1.2 · MALAYSIA UNIFIED · SKY CLARITY+ · BORTLE + 7-DAY FORECAST + NASA FIRMS + WAQI 🔐
         <span style="color: #00f0ff;">]</span>
     </div>
     """, unsafe_allow_html=True)
